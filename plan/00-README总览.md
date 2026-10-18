@@ -92,9 +92,12 @@
 
 | 事件 | run id | head | 结论 |
 | --- | --- | --- | --- |
-| 首推 push main | <首推后据实补记> | <sha> | <结论> |
-| push tag v0.1.0 | <tag 推送后据实补记> | <sha> | <结论> |
+| 首推 push main（12 提交全量） | `39119973977` | `1d3cee03` | ✅ 四矩阵（ubuntu/windows × 3.8/3.12）4/4 success，1m15s |
+| push tag `v0.1.0` | `39120145040` | `1d3cee03` | ✅ 四矩阵 4/4 success |
 
-> 对账口径：每个 push 事件恰一个 `ci.yml` run；`gh run list --workflow ci.yml` 逐条
-> 配对 head_sha；矩阵 job（ubuntu/windows × 3.8/3.12）逐 run 全绿。本表在首推与
-> tag 推送后**据实补记**（tag 后追加类提交，K30/K32）。
+> 对账口径：发布窗口共 2 次 `git push`（main / tag），`ci.yml` push run 恰 2 个，
+> branch + head_sha 逐条配对，无失败 run。GitHub Events API 该窗口仅返回
+> ReleaseEvent、0 个 PushEvent（事件面延迟/丢弃，两次重试实测仍 0），故对账以
+> push 操作流水 ↔ run 明细为准（2 = 2），如实留档于 `plan/RELEASE-M6.md` §2。
+> CI 级守门范围与本地一致：pytest 283 项 + `python -m chartaudit.cli selftest` +
+> 裸 `chartaudit selftest` 两通路冒烟（D17 安装面第四面）。

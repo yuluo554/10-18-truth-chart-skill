@@ -65,16 +65,29 @@
 ## 二、tag 后追加事实（发布执行实测，tag 后回写）
 
 > 本栏所有行均为 tag 推送之后追加；sha / run id / 时间以 `gh` 实测为准。
+> 追加提交按 K30 只做回写/补记/对账。
 
 | 项 | 状态 | 实测值 |
 | --- | --- | --- |
-| 仓库建立 + 首推 | ⬜ 待执行 | <首推后补记：仓库 URL / 首推提交 sha / push 时间> |
-| CI 首推四矩阵 | ⬜ 待执行 | <首推后补记：run id × 矩阵 job 结论> |
-| push 事件数 = run 数对账 | ⬜ 待执行 | <首推后补记> |
-| tag `v0.1.0` | ⬜ 待执行 | <tag 后补记：tag 指向 sha / tagger 邮箱 noreply / tag push run id> |
-| GitHub Release + 附件 | ⬜ 待执行 | <Release 后补记：draft=false / 资产 digest 与 §1.1 一致 / 回下载 sha256 一致> |
-| `check_release.py --online` | ⬜ 待执行 | <终检后补记：PASS/FAIL 汇总> |
-| run id 补记 plan/00 §五 | ⬜ 待执行 | <补记后勾选> |
+| 仓库建立 + 首推 | ✅ | `https://github.com/yuluo554/10-18-truth-chart-skill`（公开）；首推 push main，head `1d3cee0`（12 提交全量），2026-10-18T10:37Z |
+| CI 首推四矩阵 | ✅ | run `39119973977`（push main / `1d3cee0`）：ubuntu×3.8 / ubuntu×3.12 / windows×3.8 / windows×3.12 四 job 全部 success，1m15s |
+| push ↔ run 对账 | ✅（Events API 缺口如实留档） | 发布窗口共执行 2 次 `git push`（main 首推、tag v0.1.0），`ci.yml` push run 恰 2 个（`39119973977` main / `39120145040` v0.1.0），head_sha 均为 `1d3cee03…` 逐条配对，无多余 run。GitHub Events API 该窗口仅返回 ReleaseEvent、0 个 PushEvent（事件面延迟/丢弃，实测两次重试仍 0）——故对账以 push 操作流水 ↔ run 明细（branch + head_sha + event）为准，2 = 2 |
+| tag `v0.1.0` | ✅ | annotated tag，指向 `1d3cee03f0350c912a8d4c0587c80ecd0a69343c`（= main 收尾提交，含本留档）；tagger 邮箱 noreply；push 后 run `39120145040` 四矩阵全绿 |
+| GitHub Release + 附件 | ✅ | `releases/tag/v0.1.0`（draft=false，prerelease=false）；手工上传附件 `chartaudit-v0.1.0-samples.zip`：GitHub 资产 digest `sha256:ddd3542b…` 与 §1.1 台账一致、大小 10,066 字节一致；附件回下载 sha256 与本地副本逐位一致 |
+| `check_release.py --online` | ✅ | 终检 **PASS 43 / WARN 0 / FAIL 0 / SKIP 1**（唯一 SKIP = PUSH_RECON：Events API 0 个 PushEvent，已按上表口径以 run 明细完成对账）；离线模同样全绿 |
+| run id 补记 plan/00 §五 | ✅ | 已补记（见 plan/00 §五"CI 首推实测记录"表） |
+| 收尾追加提交 | ✅ | 本栏回写（RELEASE-M6 §二 + plan/00 §五 + plan/05 注记）为 tag 后唯一一类提交；其 push 的 run 见终检 `CI_MAIN`（HEAD 的 main push run 成功） |
+
+### 2.1 CI run 明细（发布窗口，ci.yml 全部 push run）
+
+| run id | branch | head_sha | 事件 | 四矩阵结论 | 时长 |
+| --- | --- | --- | --- | --- | --- |
+| `39119973977` | main | `1d3cee03` | push | ✅ 4/4 success | 1m15s |
+| `39120145040` | v0.1.0 | `1d3cee03` | push | ✅ 4/4 success | — |
+
+> 无失败 run（`CI_HISTORY` PASS：全部 push run 均为 success）；无 pull_request /
+> workflow_dispatch run（本窗口未发生）。首推零诊断轮（四个矩阵一次全绿，
+> 未出现兄弟项目实录过的"首跑 ubuntu 红"类缺陷）。
 
 ---
 
