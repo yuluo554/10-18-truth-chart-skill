@@ -496,20 +496,23 @@ def check_history_leaks(repo):
     patterns = [
         ("绝对路径", r"(?<![A-Za-z0-9])[A-Za-z]:[\\/](?:Users|ProgramData|Documents and Settings)[\\/]"),
         ("MSYS 路径", r"(?<![A-Za-z0-9])/[A-Za-z]/(?:Users|ProgramData|home)/"),
-        ("工作区标记", r"ProgramData[\\/]zcode"),
     ]
+    scanner_files = ("scripts/check_release.py", "plan/M6-desensitize-scan.md")
     hits = []
     revs_scanned = 0
     for rev in rev_list:
         revs_scanned += 1
         for label, pattern in patterns:
-            if rev == rev_list[0] and label == "工作区标记":
-                # tip 提交含本脚本自身（模式自引用），跳过该 rev 的标记扫描，
-                # 但其余 rev（不含扫描器）必须扫——历史泄露在旧提交里出现仍会命中。
-                continue
             rc, out = git(repo, "grep", "-n", "-e", pattern, rev, "--")
             if rc == 0 and out.strip():
                 hits.append("%s:%s" % (label, rev[:8]))
+        # 工作区标记：排除扫描器与脱敏留档自身的模式行（自引用豁免）
+        rc, out = git(repo, "grep", "-l", "-e", "ProgramData[\\/]zcode", rev, "--")
+        if rc == 0 and out.strip():
+            leaked = [line for line in out.splitlines()
+                      if line.split(":", 1)[-1] not in scanner_files]
+            if leaked:
+                hits.append("工作区标记:%s" % rev[:8])
     if hits:
         add(FAIL, "HISTORY_LEAKS",
             "全历史命中本机路径标记（词面不回显）：%s" % ", ".join(sorted(set(hits))[:6]))
