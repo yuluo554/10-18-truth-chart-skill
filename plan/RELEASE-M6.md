@@ -94,7 +94,7 @@
 > `POST_TAG_FILES` 判定：仅 plan/ 文档 + README + scripts/check_release.py（发布门禁自身），无产品/构建面改动。
 >
 > **传输通道备注（如实留档）**：追加提交 push 期间本机对 github.com 443 直连间歇不可达
-> （api.github.com 正常），改走 `ssh://git@ssh.github.com:443` 通道完成推送；不影响远端
+> （api.github.com 正常），改走 GitHub SSH-over-443 通道完成推送；不影响远端
 > 内容与 CI 结论。
 
 ### 2.2 终检快照（收官态）
