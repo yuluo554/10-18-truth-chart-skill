@@ -76,7 +76,7 @@
 | GitHub Release + 附件 | ✅ | `releases/tag/v0.1.0`（draft=false，prerelease=false）；手工上传附件 `chartaudit-v0.1.0-samples.zip`：GitHub 资产 digest `sha256:ddd3542b…` 与 §1.1 台账一致、大小 10,066 字节一致；附件回下载 sha256 与本地副本逐位一致 |
 | `check_release.py --online` | ✅ | 终检 **PASS 43 / WARN 0 / FAIL 0 / SKIP 1**（唯一 SKIP = PUSH_RECON：Events API 0 个 PushEvent，已按上表口径以 run 明细完成对账）；离线模同样全绿 |
 | run id 补记 plan/00 §五 | ✅ | 已补记（见 plan/00 §五"CI 首推实测记录"表） |
-| 收尾追加提交 | ✅ | 本栏回写（RELEASE-M6 §二 + plan/00 §五 + plan/05 注记）为 tag 后唯一一类提交；其 push 的 run 见终检 `CI_MAIN`（HEAD 的 main push run 成功） |
+| 收尾追加提交 | ✅ | tag 后共 2 个追加类提交（§二/§2.1 回写；check_release POST_TAG_FILES 中文文件名修正），各自 push 的 main run `39121268053` / `39121434804` 四矩阵全绿；tag 后改动面仅 plan/ 文档 + README + 发布门禁脚本（无产品/构建面改动） |
 
 ### 2.1 CI run 明细（发布窗口，ci.yml 全部 push run）
 
@@ -84,10 +84,27 @@
 | --- | --- | --- | --- | --- | --- |
 | `39119973977` | main | `1d3cee03` | push | ✅ 4/4 success | 1m15s |
 | `39120145040` | v0.1.0 | `1d3cee03` | push | ✅ 4/4 success | — |
+| `39121268053` | main | `4ca566ca` | push | ✅ 4/4 success | — |
+| `39121434804` | main | `b7af5e5e` | push | ✅ 4/4 success | — |
 
 > 无失败 run（`CI_HISTORY` PASS：全部 push run 均为 success）；无 pull_request /
 > workflow_dispatch run（本窗口未发生）。首推零诊断轮（四个矩阵一次全绿，
-> 未出现兄弟项目实录过的"首跑 ubuntu 红"类缺陷）。
+> 未出现兄弟项目实录过的"首跑 ubuntu 红"类缺陷）。run 3、4 为 tag 后追加类提交
+> （§二回写 / 门禁脚本中文文件名修正）触发的 main run，均全绿；tag 后改动面
+> `POST_TAG_FILES` 判定：仅 plan/ 文档 + README + scripts/check_release.py（发布门禁自身），无产品/构建面改动。
+>
+> **传输通道备注（如实留档）**：追加提交 push 期间本机对 github.com 443 直连间歇不可达
+> （api.github.com 正常），改走 `ssh://git@ssh.github.com:443` 通道完成推送；不影响远端
+> 内容与 CI 结论。
+
+### 2.2 终检快照（收官态）
+
+- `scripts/check_release.py`（离线）：**PASS 27 / WARN 0 / FAIL 0 / SKIP 0**
+- `scripts/check_release.py --online`：**PASS 44 / WARN 0 / FAIL 0 / SKIP 1**
+  （唯一 SKIP = PUSH_RECON：GitHub Events API 该窗口仅返回 ReleaseEvent、0 个
+  PushEvent，事件面延迟/丢弃两次实测仍 0；对账已按 §二 push 流水 ↔ run 明细口径完成 4 = 4）
+- 收官态再验：全新 clone（`--no-local`）→ pytest **283 passed**；`build` exit 0 且
+  `clean_bar.html` 与 `data/samples/` **逐字节一致**（`cmp`）。
 
 ---
 
