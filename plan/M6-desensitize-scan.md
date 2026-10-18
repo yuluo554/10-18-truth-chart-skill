@@ -10,9 +10,9 @@
 
 | 类别 | 模式（措辞描述） | 级别 |
 | --- | --- | --- |
-| 盘符绝对路径 | 任意盘符 + 用户目录 / ProgramData / Documents and Settings 前缀（正斜杠与反斜杠两形态） | FAIL |
-| MSYS 绝对路径 | `/x/Users|ProgramData|home/` 形态 | FAIL |
-| 本系列工作区标记 | `ProgramData/zcode` 组合路径签名 | FAIL |
+| 盘符绝对路径 | 任意盘符 + 用户目录 / 系统程序数据目录（首字母 P 开头） / Documents and Settings 前缀（正斜杠与反斜杠两形态） | FAIL |
+| MSYS 绝对路径 | `/x/` + 用户目录 / 系统程序数据目录 / home 前缀形态 | FAIL |
+| 本系列工作区标记 | 「系统程序数据目录 / 本系列工作区父目录」组合路径签名（首字母 P/z 开头，词面不复述） | FAIL |
 | 系统用户名 | 运行时取 `USERNAME`/`USER`，长度 ≥3 且非通用占位（public/runner/example 等白名单除外） | FAIL |
 | 邮箱 | 非 GitHub noreply 且非 RFC 2606 保留域（example.com 等）的邮箱 | FAIL |
 | 凭据 | GitHub token / OpenAI key / 私钥头 | FAIL |
@@ -39,8 +39,7 @@
 | 2 | `plan/HANDOFF-M1~M5.md` 命令速查含本机工作区 MSYS 绝对路径（`cd` 行，24 处文件·rev） | 全部替换为 `cd "$(git rev-parse --show-toplevel)"` |
 | 3 | `plan/HANDOFF-M2.md` §4 环境坑示例含盘符用户目录路径（1 处） | 措辞改为"系统临时目录"，去路径形态 |
 | 4 | `plan/HANDOFF-M6.md` §2 待办含盘符路径示例（2 处） | 措辞改为"盘符绝对路径 / 用户目录" |
-| 5 | 上述 1–4 均已存在于历史提交（共 7 个 rev 的旧 blob） | **`git filter-repo --replace-text` 重写全历史**（替换目标=通用词；重写前备份 bundle 于仓外），重写后全历史复扫 0 命中 |
-| 6 | 测试夹具 `tests/test_whitelist.py` 含 `someone@example.com` | 判定为 RFC 2606 保留域占位邮箱（该测试正是验证"邮箱痕迹被白名单校验拒绝"），非真实身份泄露；扫描器对保留域放行并在本表留档 |
+| 5 | 上述 1–4 均已存在于历史提交（共 7 个 rev 的旧 blob） | **`git filter-repo --replace-text` 重写全历史**（替换目标=通用词；重写前备份 bundle 于仓外），重写后全历史复扫 0 命中 || 6 | 测试夹具 `tests/test_whitelist.py` 含 `someone@example.com` | 判定为 RFC 2606 保留域占位邮箱（该测试正是验证"邮箱痕迹被白名单校验拒绝"），非真实身份泄露；扫描器对保留域放行并在本表留档 |
 
 **历史重写记录**：`git filter-repo --replace-text`（正则替换盘符绝对路径 →
 通用词）+ `--replace-refs delete-no-add`；重写前仓外备份
