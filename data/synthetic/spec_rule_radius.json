@@ -1,0 +1,16 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_sum",
+      "decimals": 1,
+      "field": "产量"
+    }
+  },
+  "mark": "pie",
+  "size_channel": "radius",
+  "spec_id": "rule_radius",
+  "title": "合成示例：半径面积编码"
+}

@@ -3,15 +3,13 @@
 0 = 审计通过且产物写出
 1 = 审计完成但存在 ERROR（阻断发布；默认不写可发布 HTML）
 2 = 用法 / 输入 / 规格错误
-3 = 规则包或配置缺失 / 校验失败
-4 = 阶段未就绪（骨架期临时语义；对应模块落地后整项退役，见 plan/05 与 skill 纪律）
+3 = 规则包 / 配置缺失 / 校验失败
 """
 
 EXIT_OK = 0
 EXIT_AUDIT_ERRORS = 1
 EXIT_USAGE = 2
 EXIT_CONFIG = 3
-EXIT_NOT_READY = 4
 
 
 def ensure_utf8_stdio():

@@ -2,22 +2,25 @@
 
 子命令：
     build <csv> <spec.json> --out <dir>   交付态全链入口（M1–M5 逐棒接线）
-    check <csv> <spec.json>               只跑审计不渲染
+    check <csv> <spec.json> --out <dir>   只跑审计不渲染
     selftest                              门禁自检
 
 退出码：见 exitcodes.py（唯一语义）。
-骨架期未接线的子命令以 EXIT_NOT_READY（4）显式拦截，不伪造空结果。
+M1 已接线解析层；后续层未实现前不伪造结果，`build` 当前等价于只产出解析产物。
 """
 
 import argparse
+import os
 import sys
 
+from . import parse
 from .exitcodes import (
-    EXIT_NOT_READY,
+    EXIT_AUDIT_ERRORS,
     EXIT_OK,
     EXIT_USAGE,
     ensure_utf8_stdio,
 )
+from .serialize import dumps_json, write_atomic
 
 
 def build_parser():
@@ -47,6 +50,59 @@ def build_parser():
     return parser
 
 
+def _write_outputs(out_dir, dataset, diagnostics, normalized_spec):
+    write_atomic(os.path.join(out_dir, "dataset.json"), dumps_json(dataset))
+    write_atomic(os.path.join(out_dir, "diagnostics.json"), dumps_json(diagnostics))
+    write_atomic(
+        os.path.join(out_dir, "chart_spec.normalized.json"),
+        dumps_json(normalized_spec),
+    )
+
+
+def _run_parse(args):
+    try:
+        dataset, diagnostics, normalized_spec = parse.run(args.csv, args.spec)
+    except parse.ParseError as exc:
+        print("输入/规格错误：%s" % exc, file=sys.stderr)
+        return EXIT_USAGE
+    _write_outputs(args.out, dataset, diagnostics, normalized_spec)
+    print(
+        "解析完成：%d 行 × %d 列（delimiter=%r，诊断项 %d）→ %s"
+        % (
+            dataset["row_count"],
+            len(dataset["header"]),
+            dataset["delimiter"],
+            diagnostics["issue_count"],
+            args.out,
+        )
+    )
+    return EXIT_OK
+
+
+def _selftest():
+    """内部不变量自检：退出码语义唯一、序列化字节契约、类型推断顺序。"""
+    from . import exitcodes
+
+    problems = []
+    codes = (exitcodes.EXIT_OK, exitcodes.EXIT_AUDIT_ERRORS, exitcodes.EXIT_USAGE, exitcodes.EXIT_CONFIG)
+    if codes != (0, 1, 2, 3) or len(set(codes)) != 4:
+        problems.append("退出码契约不是 0/1/2/3")
+    sample = {"b": 1, "a": "中"}
+    raw = dumps_json(sample)
+    if not raw.endswith(b"\n") or b"\r" in raw or raw.decode("utf-8").index('"a"') > raw.decode("utf-8").index('"b"'):
+        problems.append("序列化字节契约不符")
+    if parse.infer_cell_type("10") != "integer" or parse.infer_cell_type("1.5") != "decimal":
+        problems.append("类型推断顺序不符")
+    if parse.infer_cell_type("2026-01-01") != "date":
+        problems.append("日期推断不符")
+    if problems:
+        for problem in problems:
+            print("selftest 失败：%s" % problem, file=sys.stderr)
+        return EXIT_AUDIT_ERRORS
+    print("selftest 通过：退出码 / 序列化 / 类型推断不变量一致")
+    return EXIT_OK
+
+
 def main(argv=None):
     ensure_utf8_stdio()
     parser = build_parser()
@@ -56,15 +112,11 @@ def main(argv=None):
         return EXIT_USAGE  # 统一入口返回码而非 SystemExit，防契约漂移
 
     if args.command == "build":
-        # 骨架期：M1–M5 未接线，显式拦截（不伪造产物）
-        print("build: 阶段未就绪（M1–M5 未接线，见 plan/05）", file=sys.stderr)
-        return EXIT_NOT_READY
+        return _run_parse(args)
     if args.command == "check":
-        print("check: 阶段未就绪（M1–M5 未接线，见 plan/05）", file=sys.stderr)
-        return EXIT_NOT_READY
+        return _run_parse(args)
     if args.command == "selftest":
-        print("selftest: 阶段未就绪（门禁未接线）", file=sys.stderr)
-        return EXIT_NOT_READY
+        return _selftest()
     return EXIT_USAGE
 
 

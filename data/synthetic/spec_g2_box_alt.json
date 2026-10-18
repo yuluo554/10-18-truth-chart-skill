@@ -1,0 +1,18 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "丁组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "box",
+  "spec_id": "g2_box_alt",
+  "title": "合成示例：小样本偏斜（箱线替代）"
+}

@@ -1,0 +1,23 @@
+{
+  "encoding": {
+    "error_bar": {
+      "column": "耗时SD",
+      "type": "sd"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组S",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "errorbar_sd",
+  "title": "合成示例：SD 来源"
+}

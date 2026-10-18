@@ -1,0 +1,23 @@
+{
+  "encoding": {
+    "error_bar": {
+      "column": "样本数",
+      "type": "n"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组N2",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "g3_n_mismatch",
+  "title": "合成示例：n 与行数不符"
+}

@@ -1,0 +1,23 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "primary_key": [
+    "组别",
+    "样本编号"
+  ],
+  "spec_id": "clean_bar",
+  "title": "合成示例：甲组产量均值"
+}

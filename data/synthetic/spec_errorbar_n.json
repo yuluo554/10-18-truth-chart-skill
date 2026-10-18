@@ -1,0 +1,23 @@
+{
+  "encoding": {
+    "error_bar": {
+      "column": "样本数",
+      "type": "n"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组N",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "errorbar_n",
+  "title": "合成示例：n 声明"
+}

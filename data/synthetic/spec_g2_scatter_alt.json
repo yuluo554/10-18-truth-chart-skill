@@ -1,0 +1,20 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "丁组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "overlay_scatter": true,
+  "spec_id": "g2_scatter_alt",
+  "title": "合成示例：小样本偏斜（散点替代）"
+}

@@ -1,0 +1,20 @@
+{
+  "dual_y": true,
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "rule_dual_y",
+  "title": "合成示例：双 Y 轴"
+}

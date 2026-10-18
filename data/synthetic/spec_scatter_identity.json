@@ -1,0 +1,21 @@
+{
+  "encoding": {
+    "x": {
+      "field": "样本编号"
+    },
+    "y": {
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "scatter",
+  "primary_key": [
+    "样本编号"
+  ],
+  "spec_id": "scatter_identity",
+  "title": "合成示例：甲组逐样本产量"
+}

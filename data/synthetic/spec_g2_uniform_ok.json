@@ -1,0 +1,19 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "戊组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "g2_uniform_ok",
+  "title": "合成示例：小样本均匀均值柱"
+}

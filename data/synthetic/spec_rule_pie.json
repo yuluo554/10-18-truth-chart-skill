@@ -1,0 +1,15 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_sum",
+      "decimals": 1,
+      "field": "产量"
+    }
+  },
+  "mark": "pie",
+  "spec_id": "rule_pie",
+  "title": "合成示例：扇区求和"
+}

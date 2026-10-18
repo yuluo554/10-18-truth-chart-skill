@@ -1,0 +1,20 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "low_contrast": true,
+  "mark": "bar",
+  "spec_id": "rule_contrast",
+  "title": "合成示例：低对比度"
+}

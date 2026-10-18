@@ -1,0 +1,22 @@
+{
+  "encoding": {
+    "error_bar": {
+      "type": "sd"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组T",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "g3_sd_missing",
+  "title": "合成示例：SD 来源缺失"
+}

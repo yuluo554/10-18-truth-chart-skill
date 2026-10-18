@@ -3,7 +3,7 @@
 - **项目**：图表诚信审计 Skill（Agent Skill：`SKILL.md` + 确定性 CLI + 单文件 HTML 输出）
 - **性质**：不参赛项目题（模拟项目），发布 GitHub **公开仓库**，署名 `yuluo554`
 - **版本**：v1（2026-10-17 定稿；竞品与检索基准日 2026-10-17）
-- **当前里程碑**：M0 计划先行 ✅（plan/02–06 已定稿、骨架可运行）→ M1 数据先行（未开工）。
+- **当前里程碑**：M0 计划先行 ✅ + M1 数据先行 ✅（生成器/冻结产物/白名单/解析层已落地）→ M2 逐值溯源（未开工）。
 - **一句话定位**：CSV → 单文件 HTML 图表 + 机器可读诚信审计报告；押注**逐单元格溯源 / 样本量门禁 / 误差棒来源真实性**三条窄缝；存在 ERROR 时阻断发布。
 
 ## 一、文档索引
@@ -55,12 +55,12 @@
 | 窄缝①：逐值溯源到源单元格 | 本题设计 | `provenance.json` | 每个渲染值命中 `(row_index, column, raw_cell)` 且可重算 | ⬜ 待 M2 |
 | 窄缝②：样本量门禁 | 本题设计 | `gates.json` G2 | n 小 + 偏斜 / 多峰 → ERROR；合规替代 → 通过 | ⬜ 待 M4 |
 | 窄缝③：误差棒来源真实性 | 本题设计 | `gates.json` G3 | sd / sem / ci / n 四种声明正反例 | ⬜ 待 M4 |
-| M1 CSV / TSV 解析确定性 | 自研 | `dataset.json` / `diagnostics.json` | 类型推断与缺失 / 重复诊断基准 | ⬜ 待 M1 |
+| M1 CSV / TSV 解析确定性 | 自研 | `dataset.json` / `diagnostics.json` | 类型推断与缺失 / 重复诊断基准 | ✅ M1（双解释器 72 项全绿；回归基准 + 独立复算） |
 | M3 规则集（对齐已有工作） | 本题实现 | `audit.json` | 每类规则至少一个植入真值 | ⬜ 待 M3 |
 | M5 单文件 HTML 零 CDN | 自研内联 SVG | `dist/<name>.html` | 静态扫描 + 断网渲染 | ⬜ 待 M5 |
 | M5 字节级可复现 | 固定几何常量 + 禁用时间戳 / 随机 | `dist/<name>.html` | 同输入两次渲染 sha256 相等 | ⬜ 待 M5 |
 | 阻断发布 | 退出码 + 产物存在性 | CLI | 有 ERROR → 非 0 且无 `dist/<name>.html` | ⬜ 待 M5 |
-| 合成数据白名单 | `data/synthetic/` | 随包 | 白名单校验脚本 | ⬜ 待 M1 |
+| 合成数据白名单 | `data/synthetic/` | 随包 | 白名单校验脚本 | ✅ M1（`tools/check_whitelist.py` + 测试） |
 | 三处窄缝未被覆盖 | `gh api` 检索（`chart data provenance traceability` = 0） | 题面 §六 | 检索式 + 基准日；**只作软论据** | ⬜ 软论据（不可硬化为结论） |
 
 ## 四、里程碑
@@ -80,4 +80,5 @@
 
 - M0（阶段 0 计划先行）已完成（2026-10-18）：plan/02–06 定稿；待定决策 Q1–Q3 呈报用户（plan/06 §四，默认按建议列执行）。
 - 可运行骨架已落盘：`scripts/chartaudit/`（CLI + 退出码契约 + serialize 单点）、`tests/`（冒烟 9 项）、`pyproject.toml`、`.github/workflows/ci.yml`（四矩阵，**未推送，CI 待首推验证**）、`LICENSE`（MIT）、`.gitattributes`。
-- 下一棒从 **M1 数据先行** 开工（`plan/HANDOFF-M1.md` 未写——M0 骨架与计划同批提交，HANDOFF-M1 由 M1 开工对话按需续接，交接信息在本节与 plan/05）。
+- M1（数据先行）已完成（2026-10-18）：`tools/gen_synthetic.py`（splitmix64 自研 RNG，seed=20261018，双跑逐字节一致）→ `data/synthetic/` 冻结 28 个产物（CSV/TSV + 25 spec + truth.json + manifest.json，覆盖矩阵齐备，G2 偏斜/多峰生成期断言 g1/bins 实算值入 truth）；`--check` 两层守门 + 白名单校验脚本绿；解析层 `chartaudit/parse.py` 接线 `build`/`check`（exit 4 退役，退出码回归 0/1/2/3）；回归基准含独立复算与变异探活；**双解释器（3.8/3.12）全量 pytest 72 项全绿（本地等价校验，未接远端，CI 待首推验证）**。
+- 下一棒从 **M2 逐值溯源** 开工（交接见 `plan/HANDOFF-M2.md`）。

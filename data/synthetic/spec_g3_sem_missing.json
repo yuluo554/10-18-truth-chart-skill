@@ -1,0 +1,22 @@
+{
+  "encoding": {
+    "error_bar": {
+      "type": "sem"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组E",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "g3_sem_missing",
+  "title": "合成示例：SEM 无来源"
+}

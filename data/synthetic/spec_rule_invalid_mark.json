@@ -1,0 +1,19 @@
+{
+  "encoding": {
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar3d",
+  "spec_id": "rule_invalid_mark",
+  "title": "合成示例：非法图型"
+}

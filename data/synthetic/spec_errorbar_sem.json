@@ -1,0 +1,22 @@
+{
+  "encoding": {
+    "error_bar": {
+      "type": "sem"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组M",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "errorbar_sem",
+  "title": "合成示例：SEM 重算"
+}

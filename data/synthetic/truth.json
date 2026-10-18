@@ -1,0 +1,474 @@
+{
+  "charts": [
+    {
+      "chart_id": "clean_bar",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "pass",
+      "spec": "spec_clean_bar.json"
+    },
+    {
+      "chart_id": "scatter_identity",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [
+        {
+          "column": "产量",
+          "raw_cell": "11",
+          "row_index": 0
+        },
+        {
+          "column": "产量",
+          "raw_cell": "12",
+          "row_index": 1
+        },
+        {
+          "column": "产量",
+          "raw_cell": "14",
+          "row_index": 2
+        },
+        {
+          "column": "产量",
+          "raw_cell": "11",
+          "row_index": 3
+        },
+        {
+          "column": "产量",
+          "raw_cell": "14",
+          "row_index": 4
+        }
+      ],
+      "expected_verdict": "pass",
+      "spec": "spec_scatter_identity.json"
+    },
+    {
+      "chart_id": "rule_baseline",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R001_BAR_NONZERO_BASELINE"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_baseline.json"
+    },
+    {
+      "chart_id": "rule_dual_y",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R002_DUAL_Y_AXIS"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_dual_y.json"
+    },
+    {
+      "chart_id": "rule_pie",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R003_PIE_SECTORS_SUM"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_pie.json"
+    },
+    {
+      "chart_id": "rule_3d",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R004_PSEUDO_3D"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_3d.json"
+    },
+    {
+      "chart_id": "rule_radius",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R005_RADIUS_ENCODING"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_radius.json"
+    },
+    {
+      "chart_id": "rule_smooth",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R006_SMOOTH_OVERSHOOT"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_smooth.json"
+    },
+    {
+      "chart_id": "rule_time_uneven",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R007_TIME_AXIS_UNEVEN"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_time_uneven.json"
+    },
+    {
+      "chart_id": "rule_contrast",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R008_LOW_CONTRAST"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_contrast.json"
+    },
+    {
+      "chart_id": "rule_invalid_mark",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "R009_SPEC_INVALID"
+      ],
+      "expected_exit": 2,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_rule_invalid_mark.json"
+    },
+    {
+      "chart_id": "g2_skewed",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G2_SMALL_N_MEAN_BAR"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_stats": {
+        "bin_counts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "g1": 1.154701,
+        "multimodal": false,
+        "n": 4,
+        "n_below_min": true,
+        "skewed": true
+      },
+      "expected_verdict": "blocked",
+      "spec": "spec_g2_skewed.json"
+    },
+    {
+      "chart_id": "g2_bimodal",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G2_SMALL_N_MEAN_BAR"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_stats": {
+        "bin_counts": [
+          2,
+          0,
+          0,
+          0,
+          0,
+          2
+        ],
+        "g1": 0.0,
+        "multimodal": true,
+        "n": 4,
+        "n_below_min": true,
+        "skewed": false
+      },
+      "expected_verdict": "blocked",
+      "spec": "spec_g2_bimodal.json"
+    },
+    {
+      "chart_id": "g2_uniform_ok",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_stats": {
+        "bin_counts": [
+          1,
+          0,
+          0,
+          2,
+          0,
+          1
+        ],
+        "g1": 0.0,
+        "multimodal": false,
+        "n": 4,
+        "n_below_min": true,
+        "skewed": false
+      },
+      "expected_verdict": "pass",
+      "spec": "spec_g2_uniform_ok.json"
+    },
+    {
+      "chart_id": "g2_scatter_alt",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [
+        "G2_SMALL_N_MEAN_BAR"
+      ],
+      "expected_provenance": [],
+      "expected_stats": {
+        "bin_counts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "g1": 1.154701,
+        "multimodal": false,
+        "n": 4,
+        "n_below_min": true,
+        "skewed": true
+      },
+      "expected_verdict": "pass",
+      "spec": "spec_g2_scatter_alt.json"
+    },
+    {
+      "chart_id": "g2_box_alt",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [
+        "G2_SMALL_N_MEAN_BAR"
+      ],
+      "expected_provenance": [],
+      "expected_stats": {
+        "bin_counts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "g1": 1.154701,
+        "multimodal": false,
+        "n": 4,
+        "n_below_min": true,
+        "skewed": true
+      },
+      "expected_verdict": "pass",
+      "spec": "spec_g2_box_alt.json"
+    },
+    {
+      "chart_id": "errorbar_sd",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "pass",
+      "spec": "spec_errorbar_sd.json"
+    },
+    {
+      "chart_id": "errorbar_sem",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "pass",
+      "spec": "spec_errorbar_sem.json"
+    },
+    {
+      "chart_id": "errorbar_ci",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "pass",
+      "spec": "spec_errorbar_ci.json"
+    },
+    {
+      "chart_id": "errorbar_n",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "pass",
+      "spec": "spec_errorbar_n.json"
+    },
+    {
+      "chart_id": "g3_sd_missing",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [
+        "G3_SD_SOURCE_MISSING"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_g3_sd_missing.json"
+    },
+    {
+      "chart_id": "g3_sem_missing",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [
+        "G3_SEM_SOURCE_MISSING"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_g3_sem_missing.json"
+    },
+    {
+      "chart_id": "g3_n_mismatch",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [
+        "G3_N_MISMATCH"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_g3_n_mismatch.json"
+    },
+    {
+      "chart_id": "g3_ci_incomplete",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [
+        "G3_CI_INCOMPLETE"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_g3_ci_incomplete.json"
+    },
+    {
+      "chart_id": "g3_title_sem",
+      "data": "synthetic_errorbars.tsv",
+      "expected_errors": [
+        "G3_SEM_WITHOUT_SOURCE"
+      ],
+      "expected_exit": 0,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "spec": "spec_g3_title_sem.json"
+    },
+    {
+      "chart_id": "g1_missing_record",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G1_PROVENANCE_MISSING"
+      ],
+      "expected_exit": 1,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "injection": "M2: 删除一条 rendered_value 溯源记录",
+      "spec": "spec_clean_bar.json"
+    },
+    {
+      "chart_id": "g1_match_false",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G1_PROVENANCE_MISMATCH"
+      ],
+      "expected_exit": 1,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "injection": "M2: 篡改 recomputed_value 使 match=false",
+      "spec": "spec_clean_bar.json"
+    },
+    {
+      "chart_id": "g1_row_column_missing",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G1_ROW_COLUMN_NOT_FOUND"
+      ],
+      "expected_exit": 1,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "injection": "M2: 溯源指向不存在的 row_index/column",
+      "spec": "spec_clean_bar.json"
+    },
+    {
+      "chart_id": "g1_hash_mismatch",
+      "data": "synthetic_groups.csv",
+      "expected_errors": [
+        "G1_HASH_MISMATCH"
+      ],
+      "expected_exit": 1,
+      "expected_infos": [],
+      "expected_provenance": [],
+      "expected_verdict": "blocked",
+      "injection": "M2: 源文件 SHA-256 与 provenance.json 记录不符",
+      "spec": "spec_clean_bar.json"
+    }
+  ],
+  "contract_version": 1,
+  "n_min": 5,
+  "parser_expectations": {
+    "synthetic_errorbars.tsv": {
+      "columns": {
+        "样本数": "integer",
+        "样本编号": "string",
+        "组别": "string",
+        "耗时": "integer",
+        "耗时CI上限": "decimal",
+        "耗时CI下限": "decimal",
+        "耗时SD": "decimal",
+        "耗时SEM": "string"
+      },
+      "delimiter": "\t",
+      "missing_cells": 116,
+      "row_count": 28
+    },
+    "synthetic_groups.csv": {
+      "columns": {
+        "产量": "integer",
+        "批次": "date",
+        "样本编号": "string",
+        "组别": "string"
+      },
+      "delimiter": ",",
+      "missing_cells": 0,
+      "row_count": 21
+    }
+  },
+  "seed": 20261018
+}

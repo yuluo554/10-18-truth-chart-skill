@@ -1,0 +1,23 @@
+{
+  "encoding": {
+    "error_bar": {
+      "column": "耗时CI下限",
+      "type": "ci"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组C",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "g3_ci_incomplete",
+  "title": "合成示例：CI 只有下限"
+}

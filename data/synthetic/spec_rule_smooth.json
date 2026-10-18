@@ -1,0 +1,19 @@
+{
+  "encoding": {
+    "x": {
+      "field": "样本编号"
+    },
+    "y": {
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "甲组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "line",
+  "smooth": true,
+  "spec_id": "rule_smooth",
+  "title": "合成示例：平滑折线"
+}

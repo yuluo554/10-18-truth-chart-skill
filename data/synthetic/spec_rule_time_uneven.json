@@ -1,0 +1,18 @@
+{
+  "encoding": {
+    "x": {
+      "field": "批次"
+    },
+    "y": {
+      "decimals": 1,
+      "field": "产量",
+      "filter": {
+        "equals": "乙组",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "line",
+  "spec_id": "rule_time_uneven",
+  "title": "合成示例：不等距时间轴"
+}

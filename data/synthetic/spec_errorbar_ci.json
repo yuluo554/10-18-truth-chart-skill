@@ -1,0 +1,22 @@
+{
+  "encoding": {
+    "error_bar": {
+      "type": "ci"
+    },
+    "x": {
+      "field": "组别"
+    },
+    "y": {
+      "aggregate": "group_mean",
+      "decimals": 1,
+      "field": "耗时",
+      "filter": {
+        "equals": "组C",
+        "field": "组别"
+      }
+    }
+  },
+  "mark": "bar",
+  "spec_id": "errorbar_ci",
+  "title": "合成示例：CI 上下限"
+}
