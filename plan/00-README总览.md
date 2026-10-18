@@ -94,12 +94,14 @@
 | --- | --- | --- | --- |
 | 首推 push main（12 提交全量） | `39119973977` | `1d3cee03` | ✅ 四矩阵（ubuntu/windows × 3.8/3.12）4/4 success，1m15s |
 | push tag `v0.1.0` | `39120145040` | `1d3cee03` | ✅ 四矩阵 4/4 success |
-| tag 后追加回写（§二 run 明细） | `39121268053` | `4ca566ca` | ✅ 四矩阵 4/4 success |
+| tag 后追加回写（§2.1 run 明细） | `39121268053` | `4ca566ca` | ✅ 四矩阵 4/4 success |
 | tag 后门禁修正（发布门禁自身） | `39121434804` | `b7af5e5e` | ✅ 四矩阵 4/4 success |
+| tag 后终记追加 | `39121632358` | `5afd7e1e` | ✅ 四矩阵 4/4 success |
+| tag 后措辞修正 | `39121855807` | `493430e0` | ✅ 四矩阵 4/4 success |
 
-> 对账口径：发布窗口共 4 次 `git push`（main ×3 / tag ×1），`ci.yml` push run 恰 4 个，
-> branch + head_sha 逐条配对，无失败 run。GitHub Events API 该窗口仅返回
-> ReleaseEvent、0 个 PushEvent（事件面延迟/丢弃，两次重试实测仍 0），故对账以
-> push 操作流水 ↔ run 明细为准（4 = 4），如实留档于 `plan/RELEASE-M6.md` §2。
+> 对账口径：发布窗口共 6 次 `git push`（main ×5 / tag ×1），`ci.yml` push run 恰 6 个，
+> branch + head_sha 逐条配对，**无失败 run**。GitHub Events API 事件面存在延迟/丢弃
+> （多轮实测远少于实际 push 次数），故对账以 push 操作流水 ↔ run 明细为准
+> （6 = 6），如实留档于 `plan/RELEASE-M6.md` §2.1。
 > CI 级守门范围与本地一致：pytest 283 项 + `python -m chartaudit.cli selftest` +
 > 裸 `chartaudit selftest` 两通路冒烟（D17 安装面第四面）。
