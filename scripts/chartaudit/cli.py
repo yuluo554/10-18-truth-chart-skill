@@ -6,17 +6,20 @@
     selftest                              门禁自检
 
 退出码：见 exitcodes.py（唯一语义）。
-M1 已接线解析层；M2 接线溯源层并产出 provenance.json。溯源校验出现 ERROR 时
-返回 1 且不进入渲染（M5 渲染器接线后由 render_allowed 强制）。
+M1 解析层 → M2 溯源层 → M3 规则门禁逐棒接线：写出 dataset / diagnostics /
+chart_spec.normalized / provenance / audit 五个 JSON；溯源或规则出现 ERROR 时
+返回 1 且不进入渲染（M5 渲染器接线后由 render_allowed 强制）。规则包缺失 / 非法
+返回 3（绝不静默按"零规则"通过）。
 """
 
 import argparse
 import os
 import sys
 
-from . import parse, provenance
+from . import parse, provenance, rules
 from .exitcodes import (
     EXIT_AUDIT_ERRORS,
+    EXIT_CONFIG,
     EXIT_OK,
     EXIT_USAGE,
     ensure_utf8_stdio,
@@ -64,6 +67,12 @@ def _write_outputs(out_dir, dataset, diagnostics, normalized_spec, provenance_ob
 
 
 def _run_pipeline(args):
+    # 规则包先行加载：缺失 / 非法 → exit 3 且零写入（不得静默零规则通过）
+    try:
+        rules_cfg = rules.load_rules()
+    except rules.RulesConfigError as exc:
+        print("规则包错误（退出码 3）：%s" % exc, file=sys.stderr)
+        return EXIT_CONFIG
     try:
         dataset, diagnostics, normalized_spec = parse.run(args.csv, args.spec)
         provenance_obj = provenance.build(dataset, normalized_spec)
@@ -85,6 +94,37 @@ def _run_pipeline(args):
             file=sys.stderr,
         )
         return report["exit_code"]
+    try:
+        audit_obj = rules.audit(
+            dataset, normalized_spec, provenance_obj, rules_cfg=rules_cfg
+        )
+    except rules.RulesConfigError as exc:
+        print("规则包错误（退出码 3）：%s" % exc, file=sys.stderr)
+        return EXIT_CONFIG
+    write_atomic(os.path.join(args.out, "audit.json"), dumps_json(audit_obj))
+
+    counts_text = " / ".join(
+        "%s %d" % (level, audit_obj["counts"][level])
+        for level in audit_obj["severity_order"]
+    )
+    if audit_obj["verdict"] == "blocked":
+        for finding in audit_obj["findings"]:
+            if finding["severity"] == audit_obj["block_on"]:
+                print(
+                    "规则 %s（%s）%s"
+                    % (
+                        finding["rule_id"],
+                        finding["evidence_path"],
+                        finding["message"],
+                    ),
+                    file=sys.stderr,
+                )
+        print(
+            "规则审计阻断：命中 %d 项（%s）；%s"
+            % (len(audit_obj["findings"]), counts_text, audit_obj["alignment"]),
+            file=sys.stderr,
+        )
+        return audit_obj["exit_code"]
     print(
         "解析完成：%d 行 × %d 列（delimiter=%r，诊断项 %d）→ %s"
         % (
@@ -99,11 +139,19 @@ def _run_pipeline(args):
         "溯源完成：%d 个渲染值，全部 match 且逐值可回溯 → %s"
         % (report["checked_count"], os.path.join(args.out, "provenance.json"))
     )
+    print(
+        "规则审计完成：命中 %d 项（%s）→ %s"
+        % (
+            len(audit_obj["findings"]),
+            counts_text,
+            os.path.join(args.out, "audit.json"),
+        )
+    )
     return EXIT_OK
 
 
 def _selftest():
-    """内部不变量自检：退出码语义唯一、序列化字节契约、类型推断顺序。"""
+    """内部不变量自检：退出码语义唯一、序列化字节契约、类型推断顺序、规则包可加载。"""
     from . import exitcodes
 
     problems = []
@@ -118,11 +166,20 @@ def _selftest():
         problems.append("类型推断顺序不符")
     if parse.infer_cell_type("2026-01-01") != "date":
         problems.append("日期推断不符")
+    try:
+        rules_cfg = rules.load_rules()
+        rule_ids = [entry["rule_id"] for entry in rules_cfg["rules"]]
+        if len(rule_ids) != len(set(rule_ids)):
+            problems.append("规则包 rule_id 不唯一")
+        if rules_cfg["block_on"] not in rules_cfg["severity_order"]:
+            problems.append("规则包 block_on 不在 severity_order 内")
+    except rules.RulesConfigError as exc:
+        problems.append("规则包不可加载：%s" % exc)
     if problems:
         for problem in problems:
             print("selftest 失败：%s" % problem, file=sys.stderr)
         return EXIT_AUDIT_ERRORS
-    print("selftest 通过：退出码 / 序列化 / 类型推断不变量一致")
+    print("selftest 通过：退出码 / 序列化 / 类型推断 / 规则包不变量一致")
     return EXIT_OK
 
 

@@ -1,0 +1,87 @@
+{
+  "alignment": "对齐已有工作，非创新：本规则集与 artgas1/tufte-skill（0★，2026-10-05 实测）等已有实现高度重叠，能力对照见题面 §一 / §七（检索基准日 2026-10-17）。",
+  "block_on": "ERROR",
+  "contract_version": 1,
+  "rules": [
+    {
+      "check": "bar_nonzero_baseline",
+      "evidence_path": "y_zero",
+      "message": "柱状图 y_zero=false：截断基线放大视觉差异，必须回到零基线（对齐已有工作）",
+      "rule_id": "R001_BAR_NONZERO_BASELINE",
+      "severity": "ERROR",
+      "title": "柱状图基线非零（截断轴）"
+    },
+    {
+      "check": "dual_y_axis",
+      "evidence_path": "dual_y",
+      "message": "声明双 Y 轴：双轴刻度错位可制造虚假相关（对齐已有工作）",
+      "rule_id": "R002_DUAL_Y_AXIS",
+      "severity": "ERROR",
+      "title": "双 Y 轴"
+    },
+    {
+      "check": "pie_sectors_sum",
+      "evidence_path": "mark",
+      "message": "饼图扇区数超过上限，或扇区百分比舍入后合计不等于 100（对齐已有工作）",
+      "rule_id": "R003_PIE_SECTORS_SUM",
+      "severity": "ERROR",
+      "thresholds": {
+        "max_sectors": 4
+      },
+      "title": "饼图扇区数上限与百分比求和"
+    },
+    {
+      "check": "pseudo_3d",
+      "evidence_path": "pseudo_3d",
+      "message": "声明伪 3D 效果：透视变形扭曲数值比较（对齐已有工作）",
+      "rule_id": "R004_PSEUDO_3D",
+      "severity": "ERROR",
+      "title": "3D 效果"
+    },
+    {
+      "check": "radius_encoding",
+      "evidence_path": "size_channel",
+      "message": "size_channel=radius：以半径代替面积编码会按平方级夸大差异（对齐已有工作）",
+      "rule_id": "R005_RADIUS_ENCODING",
+      "severity": "ERROR",
+      "title": "面积 / 半径编码"
+    },
+    {
+      "check": "smooth_overshoot",
+      "evidence_path": "smooth",
+      "message": "声明平滑插值：平滑曲线可能越过数据点极值；本工具不渲染平滑曲线，须移除该声明（对齐已有工作）",
+      "rule_id": "R006_SMOOTH_OVERSHOOT",
+      "severity": "ERROR",
+      "title": "平滑曲线过冲"
+    },
+    {
+      "check": "time_axis_uneven",
+      "evidence_path": "encoding.x.field",
+      "message": "日期类 x 轴间隔不等却按类目等距绘制，扭曲时间趋势（对齐已有工作）",
+      "rule_id": "R007_TIME_AXIS_UNEVEN",
+      "severity": "ERROR",
+      "title": "时间轴等距"
+    },
+    {
+      "check": "low_contrast",
+      "evidence_path": "low_contrast",
+      "message": "声明低对比度配色：低对比度隐藏图元与标签（对齐已有工作）",
+      "rule_id": "R008_LOW_CONTRAST",
+      "severity": "ERROR",
+      "title": "文字 / 图元对比度"
+    },
+    {
+      "check": "spec_invalid",
+      "evidence_path": "mark",
+      "message": "规格合法性（非法 mark / 未知字段等）由解析层以退出码 2 拦截；规则层不二次改判（对齐已有工作）",
+      "rule_id": "R009_SPEC_INVALID",
+      "severity": "ERROR",
+      "title": "规格合法性"
+    }
+  ],
+  "severity_order": [
+    "ERROR",
+    "WARN",
+    "INFO"
+  ]
+}

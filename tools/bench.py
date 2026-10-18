@@ -1,7 +1,19 @@
-"""M2 独立重算基准（交付态入口）。
+"""M2 + M3 独立基准（交付态入口）。
 
-判别标准：本文件的期望值全部由 CSV/TSV + spec 独立复算，不调用
-`chartaudit.provenance` 的聚合/舍入实现；注释掉引擎，期望值仍能算出来。
+判别标准：
+- M2：期望值由 CSV/TSV + spec 独立复算，不调用 `chartaudit.provenance` 的
+  聚合 / 舍入实现；注释掉引擎，期望值仍能算出来。
+- M3：规则命中期望只来自 truth.json 与 `references/rules.json` 的规则包（直接读
+  JSON 文件，不 import 规则判定实现）。
+
+K13-A 口径（2026-10-18 决策，见 plan/06 D28）：truth 的 `expected_exit` 重定义为
+"解析层退出码"（0 = 解析通过，2 = 解析拒绝，冻结数据不改）；最终退出码由
+`expected_verdict` 推导：
+    - 解析层拒绝 → exit 2（零写入；K15：R009 规格合法性由解析层拦截）
+    - blocked（存在已接线审计层 ERROR）→ exit 1
+    - pass → exit 0
+M3 阶段 G2/G3 门禁尚未接线：仅由 G2/G3 期望阻断的图按"过渡态"断言（exit 0 +
+规则层零 ERROR），M4 接线 gates.json 后必须把该分支改为阻断断言。
 
 用法：
     py -X utf8 tools/bench.py
@@ -11,9 +23,7 @@
 """
 
 import contextlib
-import copy
 import csv
-import hashlib
 import io
 import json
 import os
@@ -28,10 +38,21 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "scripts"))
 from chartaudit import cli, parse, provenance  # noqa: E402
 
 DATA = os.path.join(REPO_ROOT, "data", "synthetic")
+RULES_PATH = os.path.join(REPO_ROOT, "references", "rules.json")
 
 EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
+
+
+def load_rule_ids():
+    """规则 id 只从规则包读取（基准不 import 判定实现，避免自证）。"""
+    with open(RULES_PATH, encoding="utf-8") as f:
+        config = json.load(f)
+    return {entry["rule_id"] for entry in config["rules"]}
+
+
+RULE_IDS = load_rule_ids()
 
 
 def load_truth():
@@ -187,36 +208,53 @@ def run_cli(csv_path, spec_path, out_dir):
 
 
 def check_chart(chart, temp_root):
+    """返回 (ok, message, hit_rule_ids)。"""
     chart_id = chart["chart_id"]
     csv_path = os.path.join(DATA, chart["data"])
     spec_path = os.path.join(DATA, chart["spec"])
     out_dir = os.path.join(temp_root, chart_id)
     code, _, stderr = run_cli(csv_path, spec_path, out_dir)
 
+    # K13-A：expected_exit 是解析层退出码；2 = 解析拒绝（K15 规格合法性）
     if chart["expected_exit"] == 2 and "injection" not in chart:
         if code != 2:
-            return False, "invalid-mark 期望 exit 2，实际 %d（%s）" % (code, stderr.strip())
+            return (
+                False,
+                "invalid-mark 期望 exit 2，实际 %d（%s）" % (code, stderr.strip()),
+                set(),
+            )
         if os.path.isdir(out_dir):
-            return False, "exit 2 失败路径不得写产物"
-        return True, "exit=2 零写入"
+            return False, "exit 2 失败路径不得写产物", set()
+        return True, "exit=2 零写入（规格合法性由解析层拦截）", set()
 
-    if code != 0:
-        return False, "正常图表期望 exit 0，实际 %d（%s）" % (code, stderr.strip())
+    expected_error_ids = list(chart["expected_errors"])
+    rule_layer = bool(expected_error_ids) and set(expected_error_ids) <= RULE_IDS
+    deferred_layer = bool(expected_error_ids) and not rule_layer
+    # K13-A：最终退出码由 expected_verdict / 已接线层推导（M3：规则层已接线，G2/G3 未接线）
+    expected_cli_exit = EXIT_FAILED if rule_layer else EXIT_OK
+    if code != expected_cli_exit:
+        return (
+            False,
+            "期望 exit %d（K13-A 推导），实际 %d（%s）"
+            % (expected_cli_exit, code, stderr.strip()),
+            set(),
+        )
+
     provenance_path = os.path.join(out_dir, "provenance.json")
     if not os.path.isfile(provenance_path):
-        return False, "缺少 provenance.json"
+        return False, "缺少 provenance.json", set()
     with open(provenance_path, encoding="utf-8") as f:
         prov = json.load(f)
 
     # 基础不变量：id 唯一、每值 match
     ids = [record["rendered_value_id"] for record in prov["rendered_values"]]
     if len(ids) != len(set(ids)):
-        return False, "rendered_value_id 重复"
+        return False, "rendered_value_id 重复", set()
     if any(record["match"] is not True for record in prov["rendered_values"]):
-        return False, "存在 match != true 的记录"
+        return False, "存在 match != true 的记录", set()
     for record in prov["rendered_values"]:
         if record["csv_line"] != record["row_index"] + 2:
-            return False, "csv_line != row_index + 2"
+            return False, "csv_line != row_index + 2", set()
         if record["rendered_value_id"] != provenance.rendered_value_id(
             prov["spec_id"],
             record["mark_id"],
@@ -226,20 +264,20 @@ def check_chart(chart, temp_root):
             record["column"],
             record["transform_chain"],
         ):
-            return False, "rendered_value_id 与字段重新计算不一致"
+            return False, "rendered_value_id 与字段重新计算不一致", set()
 
     if "injection" in chart:
         inject_g1(chart_id, prov)
         dataset, _, normalized = parse.run(csv_path, spec_path)
         report = provenance.validate(prov, dataset, normalized)
         if report["verdict"] != chart["expected_verdict"]:
-            return False, "注入后 verdict=%r" % report["verdict"]
+            return False, "注入后 verdict=%r" % report["verdict"], set()
         if report["exit_code"] != chart["expected_exit"]:
-            return False, "注入后 exit=%r" % report["exit_code"]
+            return False, "注入后 exit=%r" % report["exit_code"], set()
         gate_ids = [issue["gate_id"] for issue in report["errors"]]
         if gate_ids != chart["expected_errors"]:
-            return False, "注入后 gate_id=%r" % gate_ids
-        return True, "注入 %s → exit=%d" % (gate_ids[0], report["exit_code"])
+            return False, "注入后 gate_id=%r" % gate_ids, set()
+        return True, "注入 %s → exit=%d" % (gate_ids[0], report["exit_code"]), set()
 
     with open(spec_path, encoding="utf-8") as f:
         spec = json.load(f)
@@ -255,31 +293,104 @@ def check_chart(chart, temp_root):
         for record in prov["rendered_values"]
     }
     if len(expected) != len(prov["rendered_values"]):
-        return False, "期望 %d 条记录，实际 %d" % (
-            len(expected),
-            len(prov["rendered_values"]),
+        return (
+            False,
+            "期望 %d 条记录，实际 %d"
+            % (len(expected), len(prov["rendered_values"])),
+            set(),
         )
     for item in expected:
         key = (item["series"], item["category"], item["row_index"], item["column"])
         if key not in actual:
-            return False, "缺少记录 %r" % (key,)
+            return False, "缺少记录 %r" % (key,), set()
         record = actual[key]
         if record["raw_cell"] != item["raw_cell"]:
-            return False, "raw_cell 不符：%r != %r" % (
-                record["raw_cell"],
-                item["raw_cell"],
+            return (
+                False,
+                "raw_cell 不符：%r != %r" % (record["raw_cell"], item["raw_cell"]),
+                set(),
             )
         if record["rendered_label"] != item["label"]:
-            return False, "渲染值不符：%r != %r" % (
-                record["rendered_label"],
-                item["label"],
+            return (
+                False,
+                "渲染值不符：%r != %r"
+                % (record["rendered_label"], item["label"]),
+                set(),
             )
         if record["recomputed_value"] != item["label"]:
-            return False, "重算值不符：%r != %r" % (
-                record["recomputed_value"],
-                item["label"],
+            return (
+                False,
+                "重算值不符：%r != %r"
+                % (record["recomputed_value"], item["label"]),
+                set(),
             )
-    return True, "%d 个渲染值独立重算一致" % len(expected)
+
+    # M3 规则层（audit.json 由交付态 CLI 写出）
+    audit_path = os.path.join(out_dir, "audit.json")
+    if not os.path.isfile(audit_path):
+        return False, "缺少 audit.json", set()
+    with open(audit_path, encoding="utf-8") as f:
+        audit_obj = json.load(f)
+    order = {
+        level: index for index, level in enumerate(audit_obj["severity_order"])
+    }
+    sort_keys = [
+        (order[finding["severity"]], finding["rule_id"], finding["evidence_path"])
+        for finding in audit_obj["findings"]
+    ]
+    if sort_keys != sorted(sort_keys):
+        return (
+            False,
+            "audit.json 排序不稳定（severity, rule_id, evidence_path）",
+            set(),
+        )
+    blocking = sorted(
+        finding["rule_id"]
+        for finding in audit_obj["findings"]
+        if finding["severity"] == audit_obj["block_on"]
+    )
+    blocking_ids = set(blocking)
+
+    if rule_layer:
+        if audit_obj["verdict"] != chart["expected_verdict"]:
+            return (
+                False,
+                "规则层 verdict=%r（期望 %r）"
+                % (audit_obj["verdict"], chart["expected_verdict"]),
+                set(),
+            )
+        missing = [
+            rule_id for rule_id in expected_error_ids if rule_id not in blocking_ids
+        ]
+        if missing:
+            return (
+                False,
+                "规则未命中 %s（实际 %s）" % (missing, blocking),
+                blocking_ids,
+            )
+        return True, "规则命中 %s → exit=1" % ",".join(blocking), blocking_ids
+
+    if blocking:
+        return (
+            False,
+            "非规则层图表不应有规则 ERROR：%s" % ",".join(blocking),
+            blocking_ids,
+        )
+    if deferred_layer:
+        return (
+            True,
+            "M3 过渡态：exit=0；%s 由 M4 门禁接线后阻断"
+            % ",".join(expected_error_ids),
+            set(),
+        )
+    if chart["expected_infos"]:
+        return (
+            True,
+            "%d 个渲染值独立重算一致；INFO %s 待 M4 gates 接线"
+            % (len(expected), ",".join(chart["expected_infos"])),
+            set(),
+        )
+    return True, "%d 个渲染值独立重算一致；规则 0 命中" % len(expected), set()
 
 
 def main(argv=None):
@@ -290,21 +401,46 @@ def main(argv=None):
     truth = load_truth()
     temp_root = tempfile.mkdtemp(prefix="chartaudit-bench-")
     failures = []
+    hit_rule_ids = set()
     try:
         for chart in truth["charts"]:
-            ok, message = check_chart(chart, temp_root)
+            ok, message, hit_ids = check_chart(chart, temp_root)
             status = "PASS" if ok else "FAIL"
             print("[%s] %-24s %s" % (status, chart["chart_id"], message))
+            hit_rule_ids |= hit_ids
             if not ok:
                 failures.append((chart["chart_id"], message))
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
+
+    # 逐类覆盖：truth 里植入的规则 id 必须全部在 audit 中检出（R009 走解析层）
+    planted_rule_ids = set()
+    parse_layer_ids = set()
+    for chart in truth["charts"]:
+        if chart["expected_errors"] and set(chart["expected_errors"]) <= RULE_IDS:
+            planted_rule_ids |= set(chart["expected_errors"])
+        if chart["expected_exit"] == 2 and "injection" not in chart:
+            parse_layer_ids |= set(chart["expected_errors"])
+    audit_planted = planted_rule_ids - parse_layer_ids
+    missing_rules = sorted(audit_planted - hit_rule_ids)
+    print(
+        "M3 规则覆盖：%d/%d 类审计层规则检出；%d 类由解析层 exit 2 拦截"
+        % (
+            len(audit_planted & hit_rule_ids),
+            len(audit_planted),
+            len(parse_layer_ids),
+        )
+    )
+    if missing_rules:
+        print("M3 规则覆盖失败：未检出 %s" % ", ".join(missing_rules), file=sys.stderr)
 
     total = len(truth["charts"])
     print("汇总：%d/%d 达标；失败 %d" % (total - len(failures), total, len(failures)))
     if failures:
         for chart_id, message in failures:
             print("  - %s：%s" % (chart_id, message), file=sys.stderr)
+        return EXIT_FAILED
+    if missing_rules:
         return EXIT_FAILED
     return EXIT_OK
 
