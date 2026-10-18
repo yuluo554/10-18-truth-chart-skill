@@ -23,7 +23,7 @@
 
 按 plan/05 M6 DoD 与 plan/00 §四 M6 行逐项执行：
 1. 干净环境验证：新 clone + 新 venv，README 命令逐条一次跑通；`pip install -e ".[dev]"` 在 3.8 与 3.12 各收集一次，**同一 extras 集合收集数一致**（防包漂移）；`python -m chartaudit.cli` 与裸 `chartaudit` 两通路冒烟。
-2. 脱敏检查：全仓扫描本机路径（`D:\` / `仓库相对路径`）/ 用户名 / 邮箱 / 系列品牌词（见 data/README §五 品牌隔离）；`out/` 已在 .gitignore 则确认未入库；扫描留档。
+2. 脱敏检查：全仓扫描本机路径（盘符绝对路径 / 用户目录）/ 用户名 / 邮箱 / 系列品牌词（见 data/README §五 品牌隔离）；`out/` 已在 .gitignore 则确认未入库；扫描留档。
 3. 发布三件套：① `plan/RELEASE-M6.md` 发布留档**在 tag 之前入库**（分栏"tag 时点事实 / tag 后追加事实"）② git tag ③ GitHub Release **手工上传附件**（≥1 个：建议 `data/samples/clean_bar.html` + `g2_skewed.audit.html` 打 zip）+ 本地副本 sha256 留档。
 4. CI 首推：`.github/workflows/ci.yml` 四矩阵（ubuntu/windows × 3.8/3.12）首推全绿；push 事件数 = run 数对账；**据实补记 run id 到 plan/00 §五**（历史"本地等价校验"措辞不改写，只追加）。
 5. `scripts/check_release.py` 发布终态自检（离线 + `--online` 两模；离线模式查 tag/留档/附件本地副本哈希/README 状态行，online 模查 Release 资产与 run）。
@@ -61,7 +61,7 @@
 ## 6. 关键命令速查（M5 收尾时实跑全绿）
 
 ```bash
-cd 仓库相对路径
+cd "$(git rev-parse --show-toplevel)"
 export PYTHONDONTWRITEBYTECODE=1
 PYTHONPATH=scripts py -X utf8 -m pytest -q                    # 全量 283 项（3.8 换 py -3.8，同样 283 全绿）
 PYTHONPATH=scripts py -X utf8 tools/bench.py                  # 29/29（含 M5 发布门 + 13 张双跑 sha256）

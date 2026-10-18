@@ -36,7 +36,7 @@
 ## 4. 本机环境坑（新增 + 沿用）
 
 - 沿用 HANDOFF-M1 §4 全部条目（`py -X utf8` + `PYTHONDONTWRITEBYTECODE=1` + `PYTHONPATH=scripts`；3.8/3.12 双通道；serialize 只收 bytes/str）。
-- **Git Bash 下 `/tmp` 与 Python 的 `TEMP` 不一致**：bash `rm -rf /tmp/x` 删不到 Python 写的 `仓库相对路径`；跨工具清理用同一侧路径。CLI `--out` 指向已存在的**文件**时 `os.makedirs` 会 FileExistsError（exit 1 而非 2）——M2 若在 CLI 层遇到再决定是否归入 exit 2 语义。
+- **Git Bash 下 `/tmp` 与 Python 的 `TEMP` 不一致**：bash `rm -rf /tmp/x` 删不到 Python 写的系统临时目录；跨工具清理用同一侧路径。CLI `--out` 指向已存在的**文件**时 `os.makedirs` 会 FileExistsError（exit 1 而非 2）——M2 若在 CLI 层遇到再决定是否归入 exit 2 语义。
 - 生成器 `--write` 是唯一写盘入口；冻结后禁止手工编辑 `data/synthetic/`（改生成器 → `--write` 重生成 → manifest 自动更新）。
 - spec 归一化把 `filter` 组信息保留在 `encoding.y.filter`；G2 真值复算走该字段定位组（测试已示范）。
 
@@ -54,7 +54,7 @@
 ## 6. 关键命令速查（写时实跑过）
 
 ```bash
-cd 仓库相对路径
+cd "$(git rev-parse --show-toplevel)"
 export PYTHONDONTWRITEBYTECODE=1
 PYTHONPATH=scripts py -X utf8 -m pytest -q                  # 全量（3.12 换 py -3.8）
 PYTHONPATH=scripts py -X utf8 -m chartaudit.cli check data/synthetic/synthetic_groups.csv data/synthetic/spec_clean_bar.json --out <out>

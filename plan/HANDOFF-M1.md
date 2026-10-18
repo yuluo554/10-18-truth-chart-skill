@@ -1,7 +1,7 @@
 # HANDOFF-M1（M0 → M1 交接快照）
 
 > 写于 2026-10-18，M0 收尾提交 `c16c019` 之后。续接提示词：
-> `/goal 读取 "仓库相对路径" 继续完成任务`
+> `/goal 读取 "plan/HANDOFF-M1.md" 继续完成任务`
 
 ## 1. 当前进度 + 证据
 
@@ -54,7 +54,7 @@
 ## 6. 关键命令速查（写时实跑过）
 
 ```bash
-cd 仓库相对路径
+cd "$(git rev-parse --show-toplevel)"
 export PYTHONDONTWRITEBYTECODE=1
 PYTHONPATH=scripts py -X utf8 -m pytest -q          # 3.8 全量（3.12 换解释器）
 PYTHONPATH=scripts py -X utf8 -m chartaudit.cli selftest   # 现为 exit 4，接线后改 0

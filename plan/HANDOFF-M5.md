@@ -65,7 +65,7 @@
 ## 6. 关键命令速查（写时实跑过）
 
 ```bash
-cd 仓库相对路径
+cd "$(git rev-parse --show-toplevel)"
 export PYTHONDONTWRITEBYTECODE=1
 PYTHONPATH=scripts py -X utf8 -m pytest -q                    # 全量 243 项（3.8 换 py -3.8）
 PYTHONPATH=scripts py -X utf8 tools/bench.py                  # M2+M3+M4 基准 29/29 + 覆盖 8/8+1 与 6/6
