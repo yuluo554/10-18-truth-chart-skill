@@ -98,10 +98,12 @@
 | tag 后门禁修正（发布门禁自身） | `39121434804` | `b7af5e5e` | ✅ 四矩阵 4/4 success |
 | tag 后终记追加 | `39121632358` | `5afd7e1e` | ✅ 四矩阵 4/4 success |
 | tag 后措辞修正 | `39121855807` | `493430e0` | ✅ 四矩阵 4/4 success |
+| tag 后 run 对账终记补全 | `39122107799` | `778bdad6` | ✅ 四矩阵 4/4 success |
 
-> 对账口径：发布窗口共 6 次 `git push`（main ×5 / tag ×1），`ci.yml` push run 恰 6 个，
+> 对账口径：发布窗口共 7 次 `git push`（main ×6 / tag ×1），`ci.yml` push run 恰 7 个，
 > branch + head_sha 逐条配对，**无失败 run**。GitHub Events API 事件面存在延迟/丢弃
-> （多轮实测远少于实际 push 次数），故对账以 push 操作流水 ↔ run 明细为准
-> （6 = 6），如实留档于 `plan/RELEASE-M6.md` §2.1。
+>（多轮实测仅 1 个 PushEvent，远少于实际 push 次数；近 90 天保留 + 高频更新丢弃的
+> 已知行为），故对账以 push 操作流水 ↔ run 明细为准（7 = 7），如实留档于
+> `plan/RELEASE-M6.md` §2.1；`check_release --online` 终检 PUSH_RECON 相应 WARN（非 FAIL）。
 > CI 级守门范围与本地一致：pytest 283 项 + `python -m chartaudit.cli selftest` +
 > 裸 `chartaudit selftest` 两通路冒烟（D17 安装面第四面）。

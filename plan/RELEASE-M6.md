@@ -76,7 +76,7 @@
 | GitHub Release + 附件 | ✅ | `releases/tag/v0.1.0`（draft=false，prerelease=false）；手工上传附件 `chartaudit-v0.1.0-samples.zip`：GitHub 资产 digest `sha256:ddd3542b…` 与 §1.1 台账一致、大小 10,066 字节一致；附件回下载 sha256 与本地副本逐位一致 |
 | `check_release.py --online` | ✅ | 终检 **PASS 43 / WARN 0 / FAIL 0 / SKIP 1**（唯一 SKIP = PUSH_RECON：Events API 0 个 PushEvent，已按上表口径以 run 明细完成对账）；离线模同样全绿 |
 | run id 补记 plan/00 §五 | ✅ | 已补记（见 plan/00 §五"CI 首推实测记录"表） |
-| 收尾追加提交 | ✅ | tag 后共 4 个追加类提交（§二/§2.1/§2.2 回写与发布门禁自身修正），各自 main run `39121268053` / `39121434804` / `39121632358` / `39121855807` 四矩阵全绿；tag 后改动面仅 plan/ 文档 + README + 发布门禁脚本（无产品/构建面改动） |
+| 收尾追加提交 | ✅ | tag 后共 5 个追加类提交（§二/§2.1/§2.2 回写、发布门禁自身修正、措辞修正），各自 main run `39121268053` / `39121434804` / `39121632358` / `39121855807` / `39122107799` 四矩阵全绿；tag 后改动面仅 plan/ 文档 + README + 发布门禁脚本（无产品/构建面改动） |
 
 ### 2.1 CI run 明细（发布窗口，ci.yml 全部 push run）
 
@@ -88,12 +88,19 @@
 | `39121434804` | main | `b7af5e5e` | push（门禁脚本中文文件名修正） | ✅ 4/4 success |
 | `39121632358` | main | `5afd7e1e` | push（§2.1/§2.2 终记追加） | ✅ 4/4 success |
 | `39121855807` | main | `493430e0` | push（通道备注措辞去邮箱形态） | ✅ 4/4 success |
+| `39122107799` | main | `778bdad6` | push（run 对账 6=6 终记补全） | ✅ 4/4 success |
 
-> 对账：发布窗口共 6 次 `git push`（main ×5 / tag ×1），`ci.yml` push run 恰 6 个，
+> 对账：发布窗口共 7 次 `git push`（main ×6 / tag ×1），`ci.yml` push run 恰 7 个，
 > branch + head_sha 逐条配对，**无失败 run**（`CI_HISTORY` PASS）；无 pull_request /
 > workflow_dispatch run。首推零诊断轮（四个矩阵一次全绿，未出现兄弟项目实录过的
-> "首跑 ubuntu 红"类缺陷）。tag 后 4 个提交均为追加类（§二回写 / 发布门禁自身修正 /
-> 终记），`POST_TAG_FILES` 判定：改动面仅 plan/ 文档 + README + 发布门禁脚本，无产品/构建面改动。
+> "首跑 ubuntu 红"类缺陷）。tag 后 5 个提交均为追加类（§二回写 / 发布门禁自身修正 /
+> 终记 / 措辞修正），`POST_TAG_FILES` 判定：改动面仅 plan/ 文档 + README + 发布门禁脚本，无产品/构建面改动。
+>
+> **Events API 缺口（如实留档，收官终态）**：Events API 多轮实测仅返回
+> ReleaseEvent + 1 个 PushEvent（远少于实际 7 次 push；该 API 只保留近 90 天且
+> 高频更新事件面会丢弃，已知的 GitHub 行为），故 push 事件数 = run 数对账以
+> **push 操作流水 ↔ run 明细（branch + head_sha + event）逐条配对**为准（7 = 7），
+> 终检 `PUSH_RECON` 相应 WARN（非 FAIL），判定依据已在本表固化。
 >
 > **传输通道备注（如实留档）**：追加提交 push 期间本机对 github.com 443 直连间歇不可达
 > （api.github.com 正常），改走 GitHub SSH-over-443 通道完成推送；不影响远端
@@ -102,13 +109,14 @@
 ### 2.2 终检快照（收官态）
 
 - `scripts/check_release.py`（离线）：**PASS 27 / WARN 0 / FAIL 0 / SKIP 0**
-- `scripts/check_release.py --online`：**PASS 44 / WARN 0 / FAIL 0 / SKIP 0**（终版）
-  —— 中间轮次唯一 SKIP/WARN = PUSH_RECON：GitHub Events API 该窗口仅返回
-  ReleaseEvent（后段延迟出现 1 个 PushEvent，远少于实际 6 次 push，事件面
-  延迟/丢弃多次实测），对账已按 §2.1 push 流水 ↔ run 明细口径完成 **6 = 6**；
-  终版 Events API 返回的 PushEvent 计数与 run 数一致，WARN 消除。
+- `scripts/check_release.py --online`：**PASS 44 / WARN 1 / FAIL 0 / SKIP 0**
+  —— 唯一 WARN = PUSH_RECON（Events API 事件面缺口，见 §2.1 处置说明；
+  对账已按 push 流水 ↔ run 明细完成 7 = 7）；其余 44 项全 PASS：
+  远端 tag 同源 / Release 非 draft + 附件 digest 与本地 sha256 逐位一致 +
+  回下载一致 / 四矩阵逐 run 全绿 / topics 8 个 / 工作树与全历史脱敏 0 命中。
 - 收官态再验：全新 clone（`--no-local`）→ pytest **283 passed**；`build` exit 0 且
-  `clean_bar.html` 与 `data/samples/` **逐字节一致**（`cmp`）。
+  `clean_bar.html` 与 `data/samples/` **逐字节一致**（`cmp`）；收官提交双解释器
+  （3.8 / 3.12）全量 pytest **283 项全绿**复跑通过。
 
 ---
 
