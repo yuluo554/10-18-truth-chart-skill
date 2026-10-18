@@ -1,0 +1,86 @@
+{
+  "block_on": "ERROR",
+  "contract_version": 1,
+  "counts": {
+    "ERROR": 1,
+    "INFO": 0,
+    "WARN": 0,
+    "total": 1
+  },
+  "exit_code": 1,
+  "findings": [
+    {
+      "evidence": {
+        "bin_counts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "category": "乙组",
+        "g1": 1.154701,
+        "multimodal": false,
+        "n": 4,
+        "n_min": 5,
+        "series": null,
+        "skewed": true,
+        "status": "violation"
+      },
+      "evidence_path": "encoding.y.aggregate",
+      "gate_id": "G2_SMALL_N_MEAN_BAR",
+      "message": "组内样本量低于 n_min 且分布偏斜或呈多峰：均值柱会掩盖分布，禁止发布；合规替代（全量散点叠加或箱线图）降级为提示",
+      "severity": "ERROR"
+    }
+  ],
+  "g1": {
+    "checked_count": 1,
+    "error_count": 0,
+    "exit_code": 0,
+    "gate_ids": [],
+    "verdict": "pass"
+  },
+  "g2": {
+    "groups": [
+      {
+        "bin_counts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "category": "乙组",
+        "g1": 1.154701,
+        "gate_id": "G2_SMALL_N_MEAN_BAR",
+        "multimodal": false,
+        "n": 4,
+        "n_below_min": true,
+        "series": null,
+        "severity": "ERROR",
+        "skewed": true,
+        "status": "violation"
+      }
+    ]
+  },
+  "g3": {
+    "declarations": [],
+    "suspicious_columns": [],
+    "title_declared_type": null
+  },
+  "mark": "bar",
+  "render_allowed": false,
+  "severity_order": [
+    "ERROR",
+    "WARN",
+    "INFO"
+  ],
+  "source": {
+    "name": "synthetic_groups.csv",
+    "sha256": "a0a3714687fed4d71ecc323c52ca6cfd48dfb9d5c33fecfd945c3617201abd7b"
+  },
+  "spec_id": "g2_skewed",
+  "verdict": "blocked"
+}

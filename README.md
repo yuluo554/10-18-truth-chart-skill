@@ -1,6 +1,6 @@
 # chartaudit — 图表诚信审计 Skill（开发中）
 
-> **状态：开发中（M0 计划先行 ✅、M1 数据先行 + 解析层 ✅、M2 逐值溯源 ✅、M3 规则门禁 ✅、M4 窄缝门禁 ✅；M5–M6 未开工）。本 README 只声称下述已实现能力。**
+> **状态：开发中（M0 计划先行 ✅、M1 数据先行 + 解析层 ✅、M2 逐值溯源 ✅、M3 规则门禁 ✅、M4 窄缝门禁 ✅、M5 渲染与 Skill ✅；M6 发布未开工）。本 README 只声称下述已实现能力。**
 
 CSV → 单文件 HTML 图表 + 机器可读诚信审计报告：逐值溯源到源 CSV 单元格、聚合可独立重算、样本量不足时禁止画均值柱、误差棒类型必须与数据列一致；存在 ERROR 时阻断发布。
 
@@ -25,19 +25,34 @@ CSV → 单文件 HTML 图表 + 机器可读诚信审计报告：逐值溯源到
 
 `references/gates.json` 是 gate_id / 级别 / 证据路径 / 阈值的**唯一出处**：引擎源码零门禁字面量（扫描门测试锁定）；门禁包或别名表缺失 / 非法 → 退出码 3。`verdict=blocked` 当且仅当存在 ERROR；最终 CLI 退出码取规则层与门禁层 ERROR 的**并集**（任一层 blocked → exit 1），层级间不互相改判。
 
+## M5 渲染与发布门
+
+单文件 HTML 渲染（`chartaudit/render.py`）与发布门已接线：
+
+- **五图型**：bar / line / scatter / box / pie；内联 SVG + 内联 CSS + 少量内联 JS，**零 CDN**（静态扫描门：无 `<script src>` / `<link>` / `url()` / `@import` / `http(s)://`；bench 与 pytest 双通道扫描）；
+- **确定性渲染**：几何常量唯一出处 `references/geometry.json`（口径 §16；`render.py` 零几何字面量，tokenize 扫描门锁定）；无时间戳 / 随机数 / 进程 ID / 绝对路径；同一输入两次渲染**字节级一致**（测试与 bench 双跑 sha256 断言）；
+- **hover 溯源提示**：数据源只来自 `provenance.json` 记录（K29）——"此值 X 来自第 N 行「Y」列" + `raw_cell` + 变换链摘要 + `rendered_value_id`；聚合值可展开逐源单元格；box 图 hover 显示五数概括与逐观测记录 id；
+- **审计区块**：ERROR / WARN / INFO 三层（溯源 / 规则 / 门禁）命中列表与计数；存在 ERROR → 页面顶部阻断横幅；
+- **发布门（D10/K27）**：三层任一 blocked → exit 1，默认**零可发布 HTML**；仅显式 `--emit-audit-html` 时写 `dist/<name>.audit.html`（带阻断横幅的审计调试件，不可冒充发布产物），退出码仍 1；无 ERROR → 写 `dist/<name>.html`，exit 0；
+- **样例产物**：`data/samples/`（通过图 + 阻断调试件 HTML + 三份审计 JSON）；
+- **`SKILL.md`**：Skill 主入口（触发条件 / 工作流 / 调用示例）+ 机器可解析契约块——输出字段集合与顺序、HTML 区块、退出码语义与代码常量（`render.HTML_PROVENANCE_FIELDS` 等）做**三方断言**（集合相等 + 顺序相等，任何一处漂移测试必红）。
+
+`chartaudit selftest` 自检范围扩展至几何包不变量（键集合一致 / 颜色合法 / 边距约束）。
+
 ## 计划
 
 详见 `plan/00-README总览.md`（索引 / 决策记录 / 承诺台账）与 `plan/05-里程碑.md`（M1–M6 DoD）。
 
-## 当前可用命令（M1 解析 + M2 溯源 + M3 规则门禁 + M4 窄缝门禁已接线）
+## 当前可用命令（M1 解析 + M2 溯源 + M3 规则门禁 + M4 窄缝门禁 + M5 渲染发布门已接线）
 
 ```bash
 pip install -e ".[dev]"
-pytest -q                                              # 全量测试（含解析 / 溯源 / 规则 / 门禁回归、G1 注入、独立重算、零字面量扫描门）
-chartaudit check <csv> <spec.json> --out <dir>         # 解析 → 溯源 → 规则审计 → 窄缝门禁；写出 dataset/diagnostics/normalized/provenance/audit/gates（exit 0/1/2/3）
-chartaudit build <csv> <spec.json> --out <dir>         # 当前等价 check（渲染 M5 接线；任一层 ERROR 时 exit 1 且不渲染）
+pytest -q                                              # 全量测试（含解析 / 溯源 / 规则 / 门禁 / 渲染回归、G1 注入、独立重算、零字面量扫描门、契约块三方断言）
+chartaudit check <csv> <spec.json> --out <dir>         # 解析 → 溯源 → 规则审计 → 窄缝门禁；写出 dataset/diagnostics/normalized/provenance/audit/gates（exit 0/1/2/3；不渲染）
+chartaudit build <csv> <spec.json> --out <dir>         # 全链：审计 + 发布门。无 ERROR → dist/<name>.html（exit 0）；有 ERROR → 默认不写，exit 1
+chartaudit build <csv> <spec.json> --out <dir> --emit-audit-html   # 阻断时额外写 dist/<name>.audit.html 审计调试件（exit 仍 1）
 chartaudit selftest                                    # 内部不变量自检（exit 0）
-py -X utf8 tools/bench.py                              # M2+M3+M4 独立基准：29 张真值图全量实跑 + 规则 / 门禁逐类覆盖（exit 0/1/2）
+py -X utf8 tools/bench.py                              # M2+M3+M4+M5 独立基准：29 张真值图全量实跑（check 层 + build 全链发布门 + HTML 双跑哈希 + 零 CDN + 注入式证伪）
 py -X utf8 tools/gen_synthetic.py --check              # 冻结数据两层守门
 py -X utf8 tools/check_whitelist.py                    # 假业务主题白名单校验
 ```
@@ -54,13 +69,17 @@ py -X utf8 tools/check_whitelist.py                    # 假业务主题白名�
 命中按 `(severity, gate_id, evidence_path)` 排序；`verdict=blocked` 当且仅当存在 ERROR
 （含 G1 溯源 ERROR，计入 ERROR 计数）。
 
-## 退出码契约（定稿，随模块接线逐条激活）
+渲染产物 `dist/<name>.html`（可发布，仅 exit 0）与 `dist/<name>.audit.html`（审计调试件，仅
+`--emit-audit-html`）：单文件、零 CDN、固定几何；hover 图元显示逐值溯源；页面内嵌审计区块
+与阻断横幅。样例见 `data/samples/`；契约块见 `SKILL.md`。
+
+## 退出码契约（定稿，已全部激活）
 
 | 码 | 语义 |
 | --- | --- |
-| 0 | 审计通过（无 ERROR）且产物写出 |
-| 1 | 审计完成但存在 ERROR（阻断发布；默认不写可发布 HTML） |
-| 2 | 用法 / 输入 / 规格错误 |
-| 3 | 规则包或配置缺失 / 校验失败 |
+| 0 | 审计通过（无 ERROR）且产物写出（含 `dist/<name>.html`） |
+| 1 | 审计完成但存在 ERROR（阻断发布；默认不写可发布 HTML；`--emit-audit-html` 调试件不改变退出码） |
+| 2 | 用法 / 输入 / 规格错误（零写入） |
+| 3 | 规则包 / 门禁包 / 别名表 / 几何包缺失或校验失败（零写入） |
 
 数值口径唯一出处：`data/README.md` 第四节。

@@ -1,0 +1,74 @@
+{
+  "columns": [
+    "组别",
+    "批次",
+    "样本编号",
+    "产量"
+  ],
+  "contract_version": 1,
+  "mark": "bar",
+  "rendered_values": [
+    {
+      "category": "乙组",
+      "column": "产量",
+      "csv_line": 7,
+      "exact_value": "3.25",
+      "mark_id": "bar",
+      "match": true,
+      "parsed_value": "1",
+      "raw_cell": "1",
+      "recomputed_value": "3.3",
+      "rendered_label": "3.3",
+      "rendered_value_id": "afc8f51be820ccd4",
+      "row_index": 5,
+      "series": null,
+      "sources": [
+        {
+          "column": "产量",
+          "csv_line": 7,
+          "parsed_value": "1",
+          "raw_cell": "1",
+          "row_index": 5
+        },
+        {
+          "column": "产量",
+          "csv_line": 8,
+          "parsed_value": "1",
+          "raw_cell": "1",
+          "row_index": 6
+        },
+        {
+          "column": "产量",
+          "csv_line": 9,
+          "parsed_value": "1",
+          "raw_cell": "1",
+          "row_index": 7
+        },
+        {
+          "column": "产量",
+          "csv_line": 10,
+          "parsed_value": "10",
+          "raw_cell": "10",
+          "row_index": 8
+        }
+      ],
+      "transform_chain": [
+        {
+          "equals": "乙组",
+          "field": "组别",
+          "op": "filter"
+        },
+        {
+          "field": "产量",
+          "op": "group_mean"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "name": "synthetic_groups.csv",
+    "row_count": 21,
+    "sha256": "a0a3714687fed4d71ecc323c52ca6cfd48dfb9d5c33fecfd945c3617201abd7b"
+  },
+  "spec_id": "g2_skewed"
+}

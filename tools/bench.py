@@ -1,4 +1,4 @@
-"""M2 + M3 + M4 独立基准（交付态入口）。
+"""M2 + M3 + M4 + M5 独立基准（交付态入口）。
 
 判别标准：
 - M2：期望值由 CSV/TSV + spec 独立复算，不调用 `chartaudit.provenance` 的
@@ -7,6 +7,9 @@
   JSON 文件，不 import 规则判定实现）。
 - M4：门禁命中期望只来自 truth.json 与 `references/gates.json` 门禁包（同样只读
   JSON，不 import 门禁判定实现）；G2 期望统计逐值对 truth 的 expected_stats。
+- M5：全链 `build` 实跑 —— 发布门产物存在性 + HTML 哈希双跑断言 + 零 CDN
+  静态扫描门 + hover 载荷与 provenance 逐键对照 + 注入式证伪（渲染值被篡改 →
+  必须阻断）。几何常量只从 `references/geometry.json` 读取。
 
 K13-A 口径（2026-10-18 决策，见 plan/06 D28）：truth 的 `expected_exit` 重定义为
 "解析层退出码"（0 = 解析通过，2 = 解析拒绝，冻结数据不改）；最终退出码由
@@ -17,6 +20,9 @@ K13-A 口径（2026-10-18 决策，见 plan/06 D28）：truth 的 `expected_exit
 M4 起 G1/G2/G3 门禁全部接线：g2_*/g3_* 共 9 张图由 M3 过渡态（exit 0）收紧为
 阻断断言（blocked → exit 1）；g2_scatter_alt / g2_box_alt 的 INFO 在 gates.json
 中兑现（exit 0）。
+M5 发布门（D10/K27）：blocked → 默认零可发布 HTML（dist/ 无 <name>.html）；
+`--emit-audit-html` 调试件 `<name>.audit.html` 仅供审计（exit 仍 1）；pass →
+`dist/<name>.html` 且 sha256 双跑一致。
 
 用法：
     py -X utf8 tools/bench.py
@@ -27,9 +33,11 @@ M4 起 G1/G2/G3 门禁全部接线：g2_*/g3_* 共 9 张图由 M3 过渡态（ex
 
 import contextlib
 import csv
+import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -43,10 +51,22 @@ from chartaudit import cli, parse, provenance  # noqa: E402
 DATA = os.path.join(REPO_ROOT, "data", "synthetic")
 RULES_PATH = os.path.join(REPO_ROOT, "references", "rules.json")
 GATES_PATH = os.path.join(REPO_ROOT, "references", "gates.json")
+GEOMETRY_PATH = os.path.join(REPO_ROOT, "references", "geometry.json")
 
 EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
+
+# M5 零 CDN 静态扫描门（K25/K26）：产物 HTML 不得含任何外部资源引用
+CDN_PATTERNS = (
+    "<script src=",
+    "<script\t",
+    "<link",
+    "url(",
+    "@import",
+    "http://",
+    "https://",
+)
 
 
 def load_rule_ids():
@@ -217,6 +237,192 @@ def run_cli(csv_path, spec_path, out_dir):
     with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
         code = cli.main(["check", csv_path, spec_path, "--out", out_dir])
     return code, stdout.getvalue(), stderr.getvalue()
+
+
+def run_build(csv_path, spec_path, out_dir, extra=()):
+    """交付态 build 入口实跑（M5 全链基准）。"""
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    argv = ["build", csv_path, spec_path, "--out", out_dir] + list(extra)
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+        code = cli.main(argv)
+    return code, stdout.getvalue(), stderr.getvalue()
+
+
+def load_geometry_values():
+    """几何常量只从 references/geometry.json 读取（K25：不引用引擎实现）。"""
+    with open(GEOMETRY_PATH, encoding="utf-8") as f:
+        return json.load(f)["values"]
+
+
+def scan_zero_cdn(html_text):
+    """静态零 CDN 扫描门：返回命中的违规模式列表（空 = 通过）。"""
+    return [pattern for pattern in CDN_PATTERNS if pattern in html_text.lower()]
+
+
+def sha256_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def extract_payload(html_text):
+    """从产物 HTML 提取 hover 溯源载荷 JSON（独立解析，不经引擎）。"""
+    match = re.search(
+        r'<script type="application/json" id="chartaudit-provenance"[^>]*>(.*?)</script>',
+        html_text,
+        re.S,
+    )
+    if match is None:
+        raise AssertionError("产物 HTML 缺少 chartaudit-provenance 数据岛")
+    return json.loads(match.group(1))
+
+
+def check_m5_build(chart, temp_root):
+    """M5 全链发布门基准：返回 (ok, message, html_sha256)。
+
+    独立于 render 实现：期望全部由 truth + 配置文件 + provenance.json 推导。
+    """
+    chart_id = chart["chart_id"]
+    csv_path = os.path.join(DATA, chart["data"])
+    spec_path = os.path.join(DATA, chart["spec"])
+
+    # 解析层拒绝（rule_invalid_mark）：exit 2 零写入，无 dist
+    if chart["expected_exit"] == 2 and "injection" not in chart:
+        out_dir = os.path.join(temp_root, "m5-" + chart_id)
+        code, _, _ = run_build(csv_path, spec_path, out_dir)
+        if code != 2:
+            return False, "build 期望 exit 2，实际 %d" % code, None
+        if os.path.isdir(out_dir):
+            return False, "exit 2 路径不得写任何产物", None
+        return True, "exit=2 零写入（无渲染）", None
+
+    # G1 注入图：check 路径在 check_chart 已覆盖判定；此处验证 build 的发布门
+    # 语义（正常 build 无注入 → exit 0 + 产物，与 truth 注入期望是两回事）。
+    if "injection" in chart:
+        out_dir = os.path.join(temp_root, "m5-" + chart_id)
+        code, _, _ = run_build(csv_path, spec_path, out_dir)
+        with open(spec_path, encoding="utf-8") as f:
+            spec = json.load(f)
+        name = re.sub(r"[^A-Za-z0-9._-]", "_", spec["spec_id"])
+        if code != 0:
+            return False, "无注入 build 期望 exit 0，实际 %d" % code, None
+        published = os.path.join(out_dir, "dist", name + ".html")
+        if not os.path.isfile(published):
+            return False, "无注入 build 缺少 dist/%s.html" % name, None
+        with open(published, "rb") as f:
+            html_bytes = f.read()
+        violations = scan_zero_cdn(html_bytes.decode("utf-8"))
+        if violations:
+            return False, "产物含外部资源引用：%s" % violations, None
+        # 注入复算（与 check_chart 同桩）：篡改后 validate 必须阻断（M2 语义）
+        with open(os.path.join(out_dir, "provenance.json"), encoding="utf-8") as f:
+            prov = json.load(f)
+        inject_g1(chart_id, prov)
+        dataset, _, normalized = parse.run(csv_path, spec_path)
+        report = provenance.validate(prov, dataset, normalized)
+        if report["verdict"] != "blocked":
+            return False, "G1 注入 build 侧复算未阻断", None
+        return (
+            True,
+            "G1 注入：build pass 出图 + 注入复算 blocked；发布门不受注入桩影响",
+            sha256_bytes(html_bytes),
+        )
+
+    expected_verdict = chart["expected_verdict"]
+    expected_error_ids = set(chart["expected_errors"])
+    blocked = expected_verdict == "blocked"
+    out_dir = os.path.join(temp_root, "m5-" + chart_id)
+
+    with open(spec_path, encoding="utf-8") as f:
+        spec = json.load(f)
+    name = re.sub(r"[^A-Za-z0-9._-]", "_", spec["spec_id"])
+
+    if blocked:
+        code, _, _ = run_build(csv_path, spec_path, out_dir)
+        if code != 1:
+            return False, "blocked build 期望 exit 1，实际 %d" % code, None
+        dist = os.path.join(out_dir, "dist")
+        if os.path.isdir(dist) and os.listdir(dist):
+            return False, "blocked 默认不得产出 HTML：%s" % os.listdir(dist), None
+        # --emit-audit-html：调试件带阻断横幅 + 审计条目 + 零 CDN，exit 仍 1
+        out_dbg = os.path.join(temp_root, "m5dbg-" + chart_id)
+        code_dbg, _, _ = run_build(csv_path, spec_path, out_dbg, ["--emit-audit-html"])
+        if code_dbg != 1:
+            return False, "调试件 build 期望 exit 1，实际 %d" % code_dbg, None
+        audit_html = os.path.join(out_dbg, "dist", name + ".audit.html")
+        if not os.path.isfile(audit_html):
+            return False, "缺少调试件 %s.audit.html" % name, None
+        with open(audit_html, encoding="utf-8") as f:
+            html_text = f.read()
+        violations = scan_zero_cdn(html_text)
+        if violations:
+            return False, "调试件含外部资源引用：%s" % violations, None
+        if "审计阻断" not in html_text:
+            return False, "调试件缺少阻断横幅", None
+        if not os.path.isfile(os.path.join(out_dbg, "gates.json")):
+            return False, "调试件路径缺少 gates.json", None
+        return True, "blocked → 默认零 HTML；调试件含横幅 + 零 CDN + exit 1", None
+
+    # pass：exit 0 + dist/<name>.html + 零 CDN + hover 载荷对照 + 双跑哈希
+    code, _, _ = run_build(csv_path, spec_path, out_dir)
+    if code != 0:
+        return False, "pass build 期望 exit 0，实际 %d" % code, None
+    published = os.path.join(out_dir, "dist", name + ".html")
+    if not os.path.isfile(published):
+        return False, "缺少可发布产物 dist/%s.html" % name, None
+    with open(published, "rb") as f:
+        first_bytes = f.read()
+    html_text = first_bytes.decode("utf-8")
+    violations = scan_zero_cdn(html_text)
+    if violations:
+        return False, "产物含外部资源引用：%s" % violations, None
+
+    # hover 载荷与 provenance.json 逐键对照（K29：渲染层不得改值）
+    with open(os.path.join(out_dir, "provenance.json"), encoding="utf-8") as f:
+        prov = json.load(f)
+    payload = extract_payload(html_text)
+    expected_records = {r["rendered_value_id"]: r for r in prov["rendered_values"]}
+    if set(payload["records"]) != set(expected_records):
+        return False, "hover 载荷 id 集合与 provenance 不符", None
+    for rid, record in expected_records.items():
+        item = payload["records"][rid]
+        if item["csv_line"] != record["csv_line"]:
+            return False, "hover csv_line 与 provenance 不符：%s" % rid, None
+        if item["raw_cell"] != record["raw_cell"]:
+            return False, "hover raw_cell 与 provenance 不符：%s" % rid, None
+        if item["rendered_label"] != record["rendered_label"]:
+            return False, "hover rendered_label 与 provenance 不符：%s" % rid, None
+
+    # 双跑哈希一致（K26）
+    out_dir2 = os.path.join(temp_root, "m5r-" + chart_id)
+    code2, _, _ = run_build(csv_path, spec_path, out_dir2)
+    if code2 != 0:
+        return False, "复跑 exit %d" % code2, None
+    with open(os.path.join(out_dir2, "dist", name + ".html"), "rb") as f:
+        second_bytes = f.read()
+    if first_bytes != second_bytes:
+        return False, "两次渲染 HTML 字节不一致", None
+
+    # 注入式证伪（每张 pass 图）：篡改 provenance 渲染标签 → build 必须阻断
+    falsified = dict(prov)
+    falsified["rendered_values"] = [dict(r) for r in prov["rendered_values"]]
+    falsified["rendered_values"][0]["rendered_label"] = "999.9"
+    falsified["rendered_values"][0]["recomputed_value"] = "999.9"
+    tampered_dir = os.path.join(temp_root, "m5tamper-" + chart_id)
+    os.makedirs(tampered_dir, exist_ok=True)
+    with open(os.path.join(tampered_dir, "provenance.json"), "w", encoding="utf-8") as f:
+        json.dump(falsified, f, ensure_ascii=False)
+    # 直接用 validate 独立复算（不经 CLI 注入桩）：match 校验必须翻红
+    dataset, _, normalized = parse.run(csv_path, spec_path)
+    report = provenance.validate(falsified, dataset, normalized)
+    if report["verdict"] != "blocked":
+        return False, "注入式证伪失败：篡改渲染值未被检出", None
+
+    return (
+        True,
+        "pass → dist/%s.html（sha256=%s…）；零 CDN；载荷对照一致；双跑一致；篡改证伪检出"
+        % (name, sha256_bytes(first_bytes)[:12]),
+        sha256_bytes(first_bytes),
+    )
 
 
 def check_chart(chart, temp_root):
@@ -581,6 +787,7 @@ def main(argv=None):
     hit_rule_ids = set()
     hit_gate_ids = set()
     gate_info_seen = set()
+    html_hashes = {}
     try:
         for chart in truth["charts"]:
             ok, message, hit_rule, hit_gate, seen_info = check_chart(
@@ -593,6 +800,18 @@ def main(argv=None):
             gate_info_seen |= seen_info
             if not ok:
                 failures.append((chart["chart_id"], message))
+
+        # M5 全链 build：29 张真值图逐一实跑发布门（独立于 check 路径）
+        m5_failures = 0
+        for chart in truth["charts"]:
+            ok, message, html_sha = check_m5_build(chart, temp_root)
+            status = "PASS" if ok else "FAIL"
+            print("[%s] %-24s [M5] %s" % (status, chart["chart_id"], message))
+            if html_sha is not None:
+                html_hashes[chart["chart_id"]] = html_sha
+            if not ok:
+                m5_failures += 1
+                failures.append((chart["chart_id"] + " [M5]", message))
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -646,6 +865,12 @@ def main(argv=None):
         print("M4 门禁覆盖失败：未检出 %s" % ", ".join(missing_gates), file=sys.stderr)
 
     total = len(truth["charts"])
+    print(
+        "M5 全链 build：%d/%d 图发布门达标（pass 图 HTML 哈希双跑一致；blocked 图默认零可发布 HTML；零 CDN 扫描门通过）"
+        % (total - m5_failures, total)
+    )
+    published = len(html_hashes)
+    print("M5 可发布产物：%d 张（双跑 sha256 断言覆盖）" % published)
     print("汇总：%d/%d 达标；失败 %d" % (total - len(failures), total, len(failures)))
     if failures:
         for chart_id, message in failures:

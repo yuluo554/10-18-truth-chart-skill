@@ -1,22 +1,25 @@
 """chartaudit CLI 入口。
 
 子命令：
-    build <csv> <spec.json> --out <dir>   交付态全链入口（M1–M5 逐棒接线）
-    check <csv> <spec.json> --out <dir>   只跑审计不渲染
-    selftest                              门禁自检
+    build <csv> <spec.json> --out <dir> [--emit-audit-html]   全链：解析→溯源→门禁→渲染（发布门）
+    check <csv> <spec.json> --out <dir>                       只跑审计不渲染
+    selftest                                                  门禁自检
 
 退出码：见 exitcodes.py（唯一语义）。
-M1 解析层 → M2 溯源层 → M3 规则门禁逐棒接线：写出 dataset / diagnostics /
-chart_spec.normalized / provenance / audit 五个 JSON；溯源或规则出现 ERROR 时
-返回 1 且不进入渲染（M5 渲染器接线后由 render_allowed 强制）。规则包缺失 / 非法
-返回 3（绝不静默按"零规则"通过）。
+
+发布门（D10 / K27，口径 §15）：
+- 三层（溯源 / 规则 / 门禁）任一 blocked → exit 1；默认**不写**可发布
+  `dist/<name>.html`；仅显式 `--emit-audit-html` 时写 `<name>.audit.html`
+  （带阻断横幅的审计调试件，不得冒充发布产物），退出码仍为 1；
+- 无 ERROR → 写 `dist/<name>.html`（同内容亦可于 --out 复查），exit 0；
+- 配置缺失 / 非法（规则包 / 门禁包 / 别名表 / 几何包）→ exit 3 且零写入。
 """
 
 import argparse
 import os
 import sys
 
-from . import gates, parse, provenance, rules
+from . import gates, parse, provenance, render, rules
 from .exitcodes import (
     EXIT_AUDIT_ERRORS,
     EXIT_CONFIG,
@@ -34,10 +37,10 @@ def build_parser():
     )
     sub = parser.add_subparsers(dest="command")
 
-    p_build = sub.add_parser("build", help="全链：解析→溯源→门禁→渲染")
+    p_build = sub.add_parser("build", help="全链：解析→溯源→门禁→渲染（发布门）")
     p_build.add_argument("csv", help="输入 CSV/TSV（UTF-8）")
     p_build.add_argument("spec", help="图表规格 JSON")
-    p_build.add_argument("--out", required=True, help="输出目录")
+    p_build.add_argument("--out", required=True, help="审计 JSON 输出目录")
     p_build.add_argument(
         "--emit-audit-html",
         action="store_true",
@@ -66,13 +69,69 @@ def _write_outputs(out_dir, dataset, diagnostics, normalized_spec, provenance_ob
     )
 
 
+def _load_configs():
+    """配置先行加载：规则包 / 门禁包 / 别名表 / 几何包；任一缺失非法 → exit 3 零写入。"""
+    rules_cfg = rules.load_rules()
+    gates_cfg = gates.load_gates(rules_cfg=rules_cfg)
+    aliases_cfg = gates.load_aliases()
+    geometry_cfg = render.load_geometry()
+    return rules_cfg, gates_cfg, aliases_cfg, geometry_cfg
+
+
+def _publish_gate(
+    args,
+    normalized_spec,
+    provenance_obj,
+    provenance_report,
+    audit_obj,
+    gates_obj,
+    geometry_cfg,
+    blocked,
+):
+    """发布门（K27）：默认只写 dist/<name>.html（无 ERROR）；阻断时默认零可发布 HTML。"""
+    name = render.output_name(normalized_spec["spec_id"])
+    dist_dir = os.path.join(os.path.abspath(args.out), "dist")
+    if not blocked:
+        html_text = render.render_html(
+            dataset=None,
+            normalized_spec=normalized_spec,
+            provenance_obj=provenance_obj,
+            provenance_report=provenance_report,
+            audit_obj=audit_obj,
+            gates_obj=gates_obj,
+            geometry_cfg=geometry_cfg,
+            blocked=False,
+            audit_debug=False,
+        )
+        write_atomic(os.path.join(dist_dir, "%s.html" % name), html_text)
+        return os.path.join(dist_dir, "%s.html" % name)
+    if getattr(args, "emit_audit_html", False):
+        html_text = render.render_html(
+            dataset=None,
+            normalized_spec=normalized_spec,
+            provenance_obj=provenance_obj,
+            provenance_report=provenance_report,
+            audit_obj=audit_obj,
+            gates_obj=gates_obj,
+            geometry_cfg=geometry_cfg,
+            blocked=True,
+            audit_debug=True,
+        )
+        path = os.path.join(dist_dir, "%s.audit.html" % name)
+        write_atomic(path, html_text)
+        return path
+    return None
+
+
 def _run_pipeline(args):
     # 配置先行加载：缺失 / 非法 → exit 3 且零写入（不得静默零规则 / 零门禁通过）
     try:
-        rules_cfg = rules.load_rules()
-        gates_cfg = gates.load_gates(rules_cfg=rules_cfg)
-        aliases_cfg = gates.load_aliases()
-    except (rules.RulesConfigError, gates.GatesConfigError) as exc:
+        rules_cfg, gates_cfg, aliases_cfg, geometry_cfg = _load_configs()
+    except (
+        rules.RulesConfigError,
+        gates.GatesConfigError,
+        render.GeometryConfigError,
+    ) as exc:
         print("配置错误（退出码 3）：%s" % exc, file=sys.stderr)
         return EXIT_CONFIG
     try:
@@ -169,6 +228,21 @@ def _run_pipeline(args):
         or audit_obj["verdict"] == "blocked"
         or gates_obj["verdict"] == "blocked"
     )
+
+    # 发布门（仅 build；check 永不写 HTML）
+    if args.command == "build":
+        published = _publish_gate(
+            args,
+            normalized_spec,
+            provenance_obj,
+            report,
+            audit_obj,
+            gates_obj,
+            geometry_cfg,
+            blocked,
+        )
+        if published is not None:
+            print("渲染完成：%s" % published)
     if blocked:
         return EXIT_AUDIT_ERRORS
 
@@ -240,11 +314,18 @@ def _selftest():
                 problems.append("门禁包 gate_id 不唯一")
         except (rules.RulesConfigError, gates.GatesConfigError) as exc:
             problems.append("门禁包不可加载：%s" % exc)
+    try:
+        geometry_cfg = render.load_geometry()
+        values = geometry_cfg["values"]
+        if set(values) != set(render.GEOMETRY_KEYS):
+            problems.append("几何包键集合与 render.GEOMETRY_KEYS 不一致")
+    except render.GeometryConfigError as exc:
+        problems.append("几何包不可加载：%s" % exc)
     if problems:
         for problem in problems:
             print("selftest 失败：%s" % problem, file=sys.stderr)
         return EXIT_AUDIT_ERRORS
-    print("selftest 通过：退出码 / 序列化 / 类型推断 / 规则包 / 门禁包不变量一致")
+    print("selftest 通过：退出码 / 序列化 / 类型推断 / 规则包 / 门禁包 / 几何包不变量一致")
     return EXIT_OK
 
 

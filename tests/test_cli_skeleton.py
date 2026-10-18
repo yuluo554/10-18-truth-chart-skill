@@ -62,9 +62,21 @@ def test_build_is_byte_identical_across_runs(tmp_path):
     names = sorted(os.listdir(out_a))
     assert names == sorted(os.listdir(out_b))
     for name in names:
-        with open(os.path.join(out_a, name), "rb") as f:
+        path_a = os.path.join(out_a, name)
+        path_b = os.path.join(out_b, name)
+        if os.path.isdir(path_a):
+            # dist/ 目录递归对照（M5 起可发布 HTML 也在双跑断言内）
+            assert sorted(os.listdir(path_a)) == sorted(os.listdir(path_b))
+            for html_name in os.listdir(path_a):
+                with open(os.path.join(path_a, html_name), "rb") as f:
+                    first = f.read()
+                with open(os.path.join(path_b, html_name), "rb") as f:
+                    second = f.read()
+                assert first == second, html_name
+            continue
+        with open(path_a, "rb") as f:
             first = f.read()
-        with open(os.path.join(out_b, name), "rb") as f:
+        with open(path_b, "rb") as f:
             second = f.read()
         assert first == second, name
 

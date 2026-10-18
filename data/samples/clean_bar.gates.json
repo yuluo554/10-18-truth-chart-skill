@@ -1,0 +1,59 @@
+{
+  "block_on": "ERROR",
+  "contract_version": 1,
+  "counts": {
+    "ERROR": 0,
+    "INFO": 0,
+    "WARN": 0,
+    "total": 0
+  },
+  "exit_code": 0,
+  "findings": [],
+  "g1": {
+    "checked_count": 1,
+    "error_count": 0,
+    "exit_code": 0,
+    "gate_ids": [],
+    "verdict": "pass"
+  },
+  "g2": {
+    "groups": [
+      {
+        "bin_counts": [
+          2,
+          0,
+          1,
+          0,
+          0,
+          2
+        ],
+        "category": "甲组",
+        "g1": 0.211547,
+        "multimodal": true,
+        "n": 5,
+        "n_below_min": false,
+        "series": null,
+        "skewed": false,
+        "status": "pass"
+      }
+    ]
+  },
+  "g3": {
+    "declarations": [],
+    "suspicious_columns": [],
+    "title_declared_type": null
+  },
+  "mark": "bar",
+  "render_allowed": true,
+  "severity_order": [
+    "ERROR",
+    "WARN",
+    "INFO"
+  ],
+  "source": {
+    "name": "synthetic_groups.csv",
+    "sha256": "a0a3714687fed4d71ecc323c52ca6cfd48dfb9d5c33fecfd945c3617201abd7b"
+  },
+  "spec_id": "clean_bar",
+  "verdict": "pass"
+}
