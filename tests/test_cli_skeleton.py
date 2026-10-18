@@ -84,6 +84,16 @@ def test_cli_returns_audit_error_when_provenance_blocked(tmp_path, monkeypatch):
     assert not [name for name in os.listdir(out) if name.endswith(".html")]
 
 
+def test_cli_returns_usage_error_when_transform_rejected(tmp_path, monkeypatch):
+    def broken_build(dataset, normalized_spec):
+        raise provenance.ProvenanceError("变换不在白名单")
+
+    monkeypatch.setattr(cli.provenance, "build", broken_build)
+    out = str(tmp_path / "usage")
+    assert cli.main(["check", GROUPS_CSV, CLEAN_SPEC, "--out", out]) == EXIT_USAGE
+    assert not os.path.exists(out)  # 失败路径零写入
+
+
 def test_missing_input_is_usage_error(tmp_path):
     assert (
         cli.main(

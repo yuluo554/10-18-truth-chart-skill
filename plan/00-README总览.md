@@ -52,7 +52,7 @@
 | 竞品占位事实（6169★ / 310★ / 226★ / 311★） | `gh api` 检索，基准日 2026-10-17 | 题面 §1.2 表 | 检索式 + 计数 + 基准日成对出现 | ✅ 已登记（软论据） |
 | 已占能力：`artgas1/tufte-skill` 检查器 | 仓库实测，0★，2026-10-05 | 题面 §1.2 / §七 | 逐条能力对照表 | ✅ 已登记 |
 | 已占能力：`honest-chart` SVG read-back | 仓库实测，0★，2026-09-04 | 题面 §1.2 / §七 | 覆盖图型对照 | ✅ 已登记 |
-| 窄缝①：逐值溯源到源单元格 | 本题设计 | `provenance.json` | 每个渲染值命中 `(row_index, column, raw_cell)` 且可重算 | ✅ M2（29 图独立重算 + G1 四形态 + 132 项双解释器全绿） |
+| 窄缝①：逐值溯源到源单元格 | 本题设计 | `provenance.json` | 每个渲染值命中 `(row_index, column, raw_cell)` 且可重算 | ✅ M2（29 图独立重算 + G1 四形态 + 133 项双解释器全绿） |
 | 窄缝②：样本量门禁 | 本题设计 | `gates.json` G2 | n 小 + 偏斜 / 多峰 → ERROR；合规替代 → 通过 | ⬜ 待 M4 |
 | 窄缝③：误差棒来源真实性 | 本题设计 | `gates.json` G3 | sd / sem / ci / n 四种声明正反例 | ⬜ 待 M4 |
 | M1 CSV / TSV 解析确定性 | 自研 | `dataset.json` / `diagnostics.json` | 类型推断与缺失 / 重复诊断基准 | ✅ M1（双解释器 72 项全绿；回归基准 + 独立复算） |
@@ -81,5 +81,5 @@
 - M0（阶段 0 计划先行）已完成（2026-10-18）：plan/02–06 定稿；待定决策 Q1–Q3 呈报用户（plan/06 §四，默认按建议列执行）。
 - 可运行骨架已落盘：`scripts/chartaudit/`（CLI + 退出码契约 + serialize 单点）、`tests/`（冒烟 9 项）、`pyproject.toml`、`.github/workflows/ci.yml`（四矩阵，**未推送，CI 待首推验证**）、`LICENSE`（MIT）、`.gitattributes`。
 - M1（数据先行）已完成（2026-10-18）：`tools/gen_synthetic.py`（splitmix64 自研 RNG，seed=20261018，双跑逐字节一致）→ `data/synthetic/` 冻结 28 个产物（CSV/TSV + 25 spec + truth.json + manifest.json，覆盖矩阵齐备，G2 偏斜/多峰生成期断言 g1/bins 实算值入 truth）；`--check` 两层守门 + 白名单校验脚本绿；解析层 `chartaudit/parse.py` 接线 `build`/`check`（exit 4 退役，退出码回归 0/1/2/3）；回归基准含独立复算与变异探活；**双解释器（3.8/3.12）全量 pytest 72 项全绿（本地等价校验，未接远端，CI 待首推验证）**。
-- M2（逐值溯源）已完成（2026-10-18）：`chartaudit/provenance.py`（变换白名单封闭、`rendered_value_id` 规范串接 SHA-256 前 16 hex、Fraction 精确重算 + ROUND_HALF_UP 输出层、G1 四形态与重复 id / raw_cell / 多余记录不变量）；`build`/`check` 写出 `provenance.json`，阻断时 exit 1 且 `render_allowed=false`；`tools/bench.py` 在交付态入口对 29 张真值图全量实跑（期望值独立复算，G1 四注入各断言 blocked + gate_id + exit 1）；**双解释器（3.8/3.12）全量 pytest 132 项全绿，bench 29/29 达标（本地等价校验，未接远端，CI 待首推验证）**。
+- M2（逐值溯源）已完成（2026-10-18）：`chartaudit/provenance.py`（变换白名单封闭、`rendered_value_id` 规范串接 SHA-256 前 16 hex、Fraction 精确重算 + ROUND_HALF_UP 输出层、G1 四形态与重复 id / raw_cell / 多余记录不变量）；`build`/`check` 写出 `provenance.json`，阻断时 exit 1 且 `render_allowed=false`；`tools/bench.py` 在交付态入口对 29 张真值图全量实跑（期望值独立复算，G1 四注入各断言 blocked + gate_id + exit 1）；**双解释器（3.8/3.12）全量 pytest 133 项全绿，bench 29/29 达标（本地等价校验，未接远端，CI 待首推验证）**。
 - 下一棒从 **M3 规则门禁** 开工（交接见 `plan/HANDOFF-M3.md`）。
