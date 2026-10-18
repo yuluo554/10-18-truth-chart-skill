@@ -200,11 +200,11 @@ def check_post_tag(repo, tag, pre_tag):
         else:
             add(PASS, "POST_TAG", "tag 后 %d 个提交均为追加类措辞" % len(commits))
 
-    rc, out = git(repo, "diff", "--name-only", "%s..HEAD" % tag)
+    rc, out = git(repo, "-c", "core.quotepath=false", "diff", "--name-only", "%s..HEAD" % tag)
     if rc != 0:
         add(WARN, "POST_TAG_FILES", "无法读取 tag..HEAD 文件差异")
         return
-    changed = [line for line in out.splitlines() if line.strip()]
+    changed = [line.strip().strip('"') for line in out.splitlines() if line.strip()]
     if not changed:
         add(PASS, "POST_TAG_FILES", "tag 后无文件改动")
         return
