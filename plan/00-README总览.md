@@ -3,7 +3,7 @@
 - **项目**：图表诚信审计 Skill（Agent Skill：`SKILL.md` + 确定性 CLI + 单文件 HTML 输出）
 - **性质**：不参赛项目题（模拟项目），发布 GitHub **公开仓库**，署名 `yuluo554`
 - **版本**：v1（2026-10-17 定稿；竞品与检索基准日 2026-10-17）
-- **当前里程碑**：M0 计划先行 ✅ + M1 数据先行 ✅ + M2 逐值溯源 ✅ + M3 规则门禁 ✅ → M4 窄缝门禁（未开工）。
+- **当前里程碑**：M0 计划先行 ✅ + M1 数据先行 ✅ + M2 逐值溯源 ✅ + M3 规则门禁 ✅ + M4 窄缝门禁 ✅ → M5 渲染与 Skill（未开工）。
 - **一句话定位**：CSV → 单文件 HTML 图表 + 机器可读诚信审计报告；押注**逐单元格溯源 / 样本量门禁 / 误差棒来源真实性**三条窄缝；存在 ERROR 时阻断发布。
 
 ## 一、文档索引
@@ -53,8 +53,8 @@
 | 已占能力：`artgas1/tufte-skill` 检查器 | 仓库实测，0★，2026-10-05 | 题面 §1.2 / §七 | 逐条能力对照表 | ✅ 已登记 |
 | 已占能力：`honest-chart` SVG read-back | 仓库实测，0★，2026-09-04 | 题面 §1.2 / §七 | 覆盖图型对照 | ✅ 已登记 |
 | 窄缝①：逐值溯源到源单元格 | 本题设计 | `provenance.json` | 每个渲染值命中 `(row_index, column, raw_cell)` 且可重算 | ✅ M2（29 图独立重算 + G1 四形态 + 133 项双解释器全绿） |
-| 窄缝②：样本量门禁 | 本题设计 | `gates.json` G2 | n 小 + 偏斜 / 多峰 → ERROR；合规替代 → 通过 | ⬜ 待 M4 |
-| 窄缝③：误差棒来源真实性 | 本题设计 | `gates.json` G3 | sd / sem / ci / n 四种声明正反例 | ⬜ 待 M4 |
+| 窄缝②：样本量门禁 | 本题设计 | `gates.json` G2 | n 小 + 偏斜 / 多峰 → ERROR；合规替代 → 通过 | ✅ M4（G2 确定性公式与 truth `expected_stats` 逐值对上；合规替代 INFO 兑现；阈值零代码字面量） |
+| 窄缝③：误差棒来源真实性 | 本题设计 | `gates.json` G3 | sd / sem / ci / n 四种声明正反例 | ✅ M4（四声明正反例全绿；别名表 `references/aliases.json` 唯一维护；标题自由文本反例命中） |
 | M1 CSV / TSV 解析确定性 | 自研 | `dataset.json` / `diagnostics.json` | 类型推断与缺失 / 重复诊断基准 | ✅ M1（双解释器 72 项全绿；回归基准 + 独立复算） |
 | M3 规则集（对齐已有工作） | 本题实现 | `audit.json` | 每类规则至少一个植入真值 | ✅ M3（8 类审计层真值命中 + R009 解析层 exit 2；零规则字面量扫描门；bench 29/29 + 覆盖 8/8+1；双解释器 202 项全绿） |
 | M5 单文件 HTML 零 CDN | 自研内联 SVG | `dist/<name>.html` | 静态扫描 + 断网渲染 | ⬜ 待 M5 |
@@ -83,4 +83,5 @@
 - M1（数据先行）已完成（2026-10-18）：`tools/gen_synthetic.py`（splitmix64 自研 RNG，seed=20261018，双跑逐字节一致）→ `data/synthetic/` 冻结 28 个产物（CSV/TSV + 25 spec + truth.json + manifest.json，覆盖矩阵齐备，G2 偏斜/多峰生成期断言 g1/bins 实算值入 truth）；`--check` 两层守门 + 白名单校验脚本绿；解析层 `chartaudit/parse.py` 接线 `build`/`check`（exit 4 退役，退出码回归 0/1/2/3）；回归基准含独立复算与变异探活；**双解释器（3.8/3.12）全量 pytest 72 项全绿（本地等价校验，未接远端，CI 待首推验证）**。
 - M2（逐值溯源）已完成（2026-10-18）：`chartaudit/provenance.py`（变换白名单封闭、`rendered_value_id` 规范串接 SHA-256 前 16 hex、Fraction 精确重算 + ROUND_HALF_UP 输出层、G1 四形态与重复 id / raw_cell / 多余记录不变量）；`build`/`check` 写出 `provenance.json`，阻断时 exit 1 且 `render_allowed=false`；`tools/bench.py` 在交付态入口对 29 张真值图全量实跑（期望值独立复算，G1 四注入各断言 blocked + gate_id + exit 1）；**双解释器（3.8/3.12）全量 pytest 133 项全绿，bench 29/29 达标（本地等价校验，未接远端，CI 待首推验证）**。
 - M3（规则门禁，对齐已有工作非创新）已完成（2026-10-18）：`references/rules.json` 首次落地（九条规则的 rule_id / severity / evidence_path / 阈值 / 文案唯一出处，含 `alignment` 对齐标注与 `severity_order` / `block_on`）；`chartaudit/rules.py` 纯函数实现九条规则（R003 = 扇区数 > 上限 或 舍入百分比合计 ≠ 100，Fraction 精确算术；R009 只由解析层 exit 2 拦截，规则层不二次改判）；引擎源码零规则字面量（扫描门测试：`R\d{3}_` 全包扫描 + rules.py 级别字符串字面量扫描）；规则包缺件 / 级别映射非法 / 未覆盖全部检查器 → exit 3 零写入；`audit.json` 按 `(severity, rule_id, evidence_path)` 排序并携带对齐标注，`verdict=blocked ⟺` 存在 ERROR 级命中；CLI 在规则命中时 exit 1 不渲染。K13 按 A 方案落地（D28）：truth `expected_exit` 重定义为"解析层退出码"，最终退出码由 `expected_verdict` 推导，冻结数据未动（`gen_synthetic --check` 复跑通过）；G2/G3 期望为 M3→M4 过渡态（规则层零 ERROR + exit 0，M4 接线 gates 后收紧为阻断断言）。**bench 29/29 达标 + 规则覆盖 8/8 审计层 + 1 类解析层拦截；变异探活四项（去排序 / 级别映射篡改 / 阈值篡改 / 删规则）全红后恢复；双解释器（3.8/3.12）全量 pytest 202 项全绿（本地等价校验，未接远端，CI 待首推验证）**。
-- 下一棒从 **M4 窄缝门禁** 开工（交接见 `plan/HANDOFF-M4.md`）。
+- M4（窄缝门禁，差异化主线）已完成（2026-10-18）：`references/gates.json` 首次落地（12 条门禁的 gate_id / severity / evidence_path / thresholds / 文案唯一出处；级别枚举复用规则包 severity_order，不另立第二份枚举）+ `references/aliases.json`（误差棒列名别名与大小写规则唯一出处，后缀匹配）；`chartaudit/gates.py` 实现 G1（只引用 `provenance.validate` 的 verdict / gate_id，不写第二份判定）/ G2（口径 §7/§8 确定性公式独立实现：g1 = m3/m2^(3/2)、|g1|>1 偏斜、bins=6 等宽直方图局部极大判多峰；violation→ERROR / undetermined→WARN / 合规替代→INFO；G2 统计与 truth `expected_stats` 逐值对上）/ G3（sd/sem/ci/n 四声明按口径 §11 判定，标题自由文本无来源→ERROR，未声明可疑列→INFO）；`gates.json` 写盘 + CLI 接线：最终退出码 = 两层 ERROR 并集（K23），门禁包/别名表缺失非法 → exit 3 零写入，selftest 增门禁包不变量；M3 过渡态收紧（K22）：bench 中 g2_*/g3_* 共 9 图 exit 0→1 阻断断言、g2_scatter_alt/g2_box_alt 的 INFO 兑现、`tests/test_rules_regression.py` 同步翻转；零字面量扫描门扩展（gates.py/cli.py/rules.py 禁 `G[123]_` 与级别字面量）。**bench 29/29 达标 + 门禁覆盖 6/6 类；变异探活三项（G2 阈值篡改 6 红 / G3 别名篡改 6 红 / verdict 逻辑破坏 13 红）实跑全红后恢复；双解释器（3.8/3.12）全量 pytest 243 项全绿；`gen_synthetic --check` 冻结守门复跑通过（本地等价校验，未接远端，CI 待首推验证）**。
+- 下一棒从 **M5 渲染与 Skill** 开工（交接见 `plan/HANDOFF-M5.md`）。

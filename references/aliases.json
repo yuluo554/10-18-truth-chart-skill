@@ -1,0 +1,69 @@
+{
+  "case_sensitive": false,
+  "contract_version": 1,
+  "match_mode": "suffix",
+  "type_order": [
+    "sd",
+    "sem",
+    "ci",
+    "n"
+  ],
+  "types": {
+    "ci": {
+      "lower": [
+        "CI下限",
+        "CI下界",
+        "置信区间下限",
+        "ci_low",
+        "ci_lower"
+      ],
+      "title": [
+        "CI",
+        "置信区间"
+      ],
+      "upper": [
+        "CI上限",
+        "CI上界",
+        "置信区间上限",
+        "ci_high",
+        "ci_upper"
+      ]
+    },
+    "n": {
+      "columns": [
+        "样本数",
+        "样本量"
+      ],
+      "title": [
+        "样本量",
+        "样本数",
+        "n="
+      ]
+    },
+    "sd": {
+      "columns": [
+        "SD",
+        "标准差",
+        "标准偏差",
+        "std",
+        "stddev"
+      ],
+      "title": [
+        "SD",
+        "标准差"
+      ]
+    },
+    "sem": {
+      "columns": [
+        "SEM",
+        "标准误",
+        "标准误差",
+        "SE"
+      ],
+      "title": [
+        "SEM",
+        "标准误"
+      ]
+    }
+  }
+}

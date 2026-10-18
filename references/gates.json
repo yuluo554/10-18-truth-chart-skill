@@ -1,0 +1,115 @@
+{
+  "contract_version": 1,
+  "gates": [
+    {
+      "check": "sample_size_mean_bar",
+      "evidence_path": "encoding.y.aggregate",
+      "gate_id": "G2_SMALL_N_MEAN_BAR",
+      "message": "组内样本量低于 n_min 且分布偏斜或呈多峰：均值柱会掩盖分布，禁止发布；合规替代（全量散点叠加或箱线图）降级为提示",
+      "severity": {
+        "alternative": "INFO",
+        "undetermined": "WARN",
+        "violation": "ERROR"
+      },
+      "title": "小样本均值柱"
+    },
+    {
+      "check": "error_bar_sd",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_SD_SOURCE_MISSING",
+      "message": "声明 SD 误差棒，但数据中不存在可用的配对 SD 列（列名别名表未命中或组内无有效数值）",
+      "severity": "ERROR",
+      "title": "SD 来源缺失"
+    },
+    {
+      "check": "error_bar_sem",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_SEM_SOURCE_MISSING",
+      "message": "声明 SEM 误差棒，但既无 SEM 列，也无可用 SD 列按 sd/sqrt(n) 重算",
+      "severity": "ERROR",
+      "title": "SEM 来源缺失"
+    },
+    {
+      "check": "error_bar_sem_value",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_SEM_MISMATCH",
+      "message": "SEM 列数值与 sd/sqrt(n) 重算结果矛盾（超出容差），声明类型与列数值不一致",
+      "severity": "ERROR",
+      "title": "SEM 数值矛盾"
+    },
+    {
+      "check": "error_bar_ci",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_CI_INCOMPLETE",
+      "message": "声明 CI 误差棒，但组内未同时具备可用的 CI 下限与上限两列",
+      "severity": "ERROR",
+      "title": "CI 上下限不完整"
+    },
+    {
+      "check": "error_bar_n",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_N_MISMATCH",
+      "message": "声明的样本数 n 与实际分组计数不符",
+      "severity": "ERROR",
+      "title": "n 与分组计数不符"
+    },
+    {
+      "check": "error_bar_n_source",
+      "evidence_path": "encoding.error_bar.column",
+      "gate_id": "G3_N_SOURCE_MISSING",
+      "message": "声明 n 误差棒，但未提供样本数列或组内无数值",
+      "severity": "ERROR",
+      "title": "n 来源缺失"
+    },
+    {
+      "check": "error_bar_sd_title",
+      "evidence_path": "title",
+      "gate_id": "G3_SD_WITHOUT_SOURCE",
+      "message": "标题以自由文本声明 SD，但规格未声明 error_bar 且数据无对应来源",
+      "severity": "ERROR",
+      "title": "标题声明 SD 无来源"
+    },
+    {
+      "check": "error_bar_sem_title",
+      "evidence_path": "title",
+      "gate_id": "G3_SEM_WITHOUT_SOURCE",
+      "message": "标题以自由文本声明 SEM，但规格未声明 error_bar 且数据无对应来源",
+      "severity": "ERROR",
+      "title": "标题声明 SEM 无来源"
+    },
+    {
+      "check": "error_bar_ci_title",
+      "evidence_path": "title",
+      "gate_id": "G3_CI_WITHOUT_SOURCE",
+      "message": "标题以自由文本声明 CI，但规格未声明 error_bar 且数据无对应来源",
+      "severity": "ERROR",
+      "title": "标题声明 CI 无来源"
+    },
+    {
+      "check": "error_bar_n_title",
+      "evidence_path": "title",
+      "gate_id": "G3_N_WITHOUT_SOURCE",
+      "message": "标题以自由文本声明样本量，但规格未声明 error_bar 且数据无对应来源",
+      "severity": "ERROR",
+      "title": "标题声明 n 无来源"
+    },
+    {
+      "check": "error_bar_undeclared",
+      "evidence_path": "encoding",
+      "gate_id": "G3_ERRORBAR_UNDECLARED",
+      "message": "未声明误差棒，但数据中存在带数值的 SD / SEM 列：请显式声明类型或移除该列",
+      "severity": "INFO",
+      "title": "未声明的误差棒列"
+    }
+  ],
+  "thresholds": {
+    "multimodal_bins": 6,
+    "multimodal_min_count_divisor": 6,
+    "multimodal_min_count_floor": 2,
+    "multimodal_min_n": 4,
+    "n_min": 5,
+    "sem_tolerance_abs": "0.000000000001",
+    "skew_abs_threshold": 1.0,
+    "skew_min_n": 3
+  }
+}

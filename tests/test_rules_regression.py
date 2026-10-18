@@ -1,8 +1,9 @@
-"""M3 规则回归：truth 逐图对上（R* 命中 / pass 图零 ERROR / G2·G3 过渡态注记）。
+"""M3 规则回归：truth 逐图对上（R* 命中 / pass 图零 ERROR / 门禁图规则层不越权）。
 
-K13-A 口径：truth 的 expected_exit 重定义为"解析层退出码"（0=解析通过，2=解析拒绝）；
-最终退出码由 expected_verdict 推导。M3 阶段 G2/G3 门禁尚未接线，相关阻塞期望按
-过渡态断言（exit 0 + 规则层零 ERROR）；M4 接线 gates.json 后本文件需收紧为阻断断言。
+K13-A 口径（M4 收紧后最终语义）：truth 的 expected_exit 是"解析层退出码"
+（0=解析通过，2=解析拒绝）；最终退出码由 expected_verdict 推导——G2/G3 门禁
+期望已在 M4 接线 gates.json，相关图在 CLI 层 exit 1（本文件只断言规则层不越权；
+门禁层断言见 tests/test_gates.py）。
 """
 
 import json
@@ -55,14 +56,10 @@ def test_truth_chart_rule_expectations(chart):
         )
         assert audit_obj["verdict"] == chart["expected_verdict"] == "blocked"
         assert audit_obj["exit_code"] == 1
-    elif expected:
-        # G2 / G3 / G1 注入期望：M3 规则层不应产生 ERROR；M4 gates 接线后翻转
-        assert blocking == set(), "M3 规则层不应越权报门禁错误：%r" % sorted(blocking)
-        assert audit_obj["verdict"] == "pass"
     else:
-        assert blocking == set()
-        assert audit_obj["verdict"] == chart["expected_verdict"] == "pass"
-        assert audit_obj["exit_code"] == 0
+        # G2 / G3 / G1 注入期望：由门禁层负责；规则层不得越权产生 ERROR（K23）
+        assert blocking == set(), "规则层不应越权报门禁错误：%r" % sorted(blocking)
+        assert audit_obj["verdict"] == "pass"
 
 
 def test_audit_findings_are_sorted_for_every_truth_chart():
