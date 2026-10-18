@@ -1,0 +1,88 @@
+# plan/RELEASE-M6.md — 发布留档（M6 三件套之三）
+
+> 版本：v0.1.0。本文件按 plan/00 §四 M6 行约定**在 git tag 之前入库**（进 tag 树），
+> 并分栏记录"tag 时点事实 / tag 后追加事实"；tag 之后只允许追加类提交
+> （回写实测值 / run id 对账 / 补记）。
+> 本文件只写**实测到**的事实；未执行项标 ⬜ 并说明原因，不预填、不留空。
+
+---
+
+## 一、发布基线（tag 时点事实）
+
+| 项 | 值 |
+| --- | --- |
+| 版本 / tag | `v0.1.0`（annotated tag） |
+| 发布基线提交 | M6 收尾提交（本文件 + 干净环境验证留档 + 脱敏留档 + 发布门禁脚本入库的提交；sha 见 git log，tag 后追加事实栏记录 tag 指向） |
+| 目标仓库 | `yuluo554/10-18-truth-chart-skill`（GitHub 公开） |
+| 双解释器 | Python 3.8.8-64 / 3.12.10（本机 `py -0p` 实测；CI 同两版本四矩阵） |
+| 运行时依赖 | 零（`dependencies = []`，纯标准库；pytest 仅为 dev extra） |
+| 测试基线 | 双解释器全量 pytest **283 项全绿**（开发机与干净 venv 四处收集数一致均为 283） |
+| 基准基线 | `tools/bench.py` **29/29 达标**（M2 独立重算 + M3 规则 8/8+1 + M4 门禁 6/6 + M5 发布门 29/29 + 13 张双跑 sha256） |
+| 冻结守门 | `gen_synthetic --check` 通过；`check_whitelist` 通过；`selftest` 通过 |
+
+### 1.1 附件清单（D15：Release 附产物，源码 zipball 不算产物）
+
+| 附件 | 内容 | 大小 | sha256 |
+| --- | --- | --- | --- |
+| `chartaudit-v0.1.0-samples.zip` | 8 个样例文件：通过图 `clean_bar.html` + 阻断调试件 `g2_skewed.audit.html` + 各自 `provenance.json` / `audit.json` / `gates.json` | 10,066 字节 | `ddd3542b10b0643d2f1ecb2f1aaad3a875ac5ada95026bc4953abf66e4a4a71e` |
+
+> 本地副本：`release/chartaudit-v0.1.0-samples.zip`（已加 .gitignore 不入库；
+> `release/SHA256SUMS` 同目录留档）。附件由 `data/samples/` 冻结产物打包
+> （zip deflate，固定文件序），样例本身在仓库内可由同一命令重生成并逐字节复现
+> （干净 clone 已实测 `cmp` 逐字节一致，见 `plan/verify/README.md` §二）。
+
+### 1.2 发布前验证证据（tag 时点已实测）
+
+- **干净环境验证**（`plan/verify/README.md`）：新目录 `git clone --no-local` + 全新
+  venv 3.8 / 3.12 各一；README「当前可用命令」12 条逐条实跑，退出码全部符合
+  「退出码契约」表；双解释器收集数 **283 = 283**（与开发机一致，防包漂移）；
+  模块形态与裸 console script 两通路冒烟（含非仓库根 CWD）。
+- **脱敏扫描**（`plan/M6-desensitize-scan.md`）：工作树 89 个入库文本文件 0 命中；
+  全历史（重写后 10 rev）0 命中（阳性对照 chartaudit 命中 220 文件·rev，通道有效）；
+  提交邮箱全部 GitHub noreply；垃圾文件 0。
+- **历史重写（如实留档）**：发布前脱敏扫描发现 `plan/HANDOFF-M1~M6.md` 含本机
+  盘符路径 / 工作区路径标记（24 处文件·rev），已用 `git filter-repo --replace-text`
+  重写全历史清零（重写前仓外备份 bundle 221,853 字节）。重写后旧短 sha 失效，
+  活文档引用已核对（`git log` 10 提交无悬挂）。
+- **发布终态自检**：`scripts/check_release.py --pre-tag` 通过（工作树干净 /
+  脱敏 0 命中 / 邮箱 noreply / 垃圾 0；tag 相关项 SKIP）。
+- 3.8 干净 venv 首次安装曾因**本机代理环境变量**失败（pip build isolation
+  `ProxyError`），绕过代理后通过——属本机网络环境问题非包缺陷，已在
+  `plan/verify/README.md` §一留档。
+
+### 1.3 发布执行计划（tag 时点写定）
+
+1. 建公开仓库 `yuluo554/10-18-truth-chart-skill`，push main → CI 首推（四矩阵）。
+2. CI 全绿后打 annotated tag `v0.1.0`（tag 指向含本留档的收尾提交），push tag。
+3. GitHub Release `v0.1.0`：**手工上传** `chartaudit-v0.1.0-samples.zip`（≥1 个附件，
+   K31），标题与说明据实写（不编造）。
+4. `scripts/check_release.py --online` 终检：远端 tag 同源 / Release 资产 digest 与
+   本地 sha256 一致 / 附件回下载逐位一致 / CI 矩阵全绿 / push 事件数 = run 数。
+5. run id 据实补记 plan/00 §五与本文 §二（tag 后追加类提交）。
+
+---
+
+## 二、tag 后追加事实（发布执行实测，tag 后回写）
+
+> 本栏所有行均为 tag 推送之后追加；sha / run id / 时间以 `gh` 实测为准。
+
+| 项 | 状态 | 实测值 |
+| --- | --- | --- |
+| 仓库建立 + 首推 | ⬜ 待执行 | <首推后补记：仓库 URL / 首推提交 sha / push 时间> |
+| CI 首推四矩阵 | ⬜ 待执行 | <首推后补记：run id × 矩阵 job 结论> |
+| push 事件数 = run 数对账 | ⬜ 待执行 | <首推后补记> |
+| tag `v0.1.0` | ⬜ 待执行 | <tag 后补记：tag 指向 sha / tagger 邮箱 noreply / tag push run id> |
+| GitHub Release + 附件 | ⬜ 待执行 | <Release 后补记：draft=false / 资产 digest 与 §1.1 一致 / 回下载 sha256 一致> |
+| `check_release.py --online` | ⬜ 待执行 | <终检后补记：PASS/FAIL 汇总> |
+| run id 补记 plan/00 §五 | ⬜ 待执行 | <补记后勾选> |
+
+---
+
+## 三、口径与红线对照（K30–K33 自检）
+
+| K 项 | 约定 | 本留档兑现 |
+| --- | --- | --- |
+| K30 | 留档在 tag 之前入库；tag 后只允许追加类提交；分栏 tag 时点 / tag 后 | 本文件随 M6 收尾提交入库（在 tag 树内）；§一为 tag 时点事实，§二为 tag 后追加栏 |
+| K31 | Release 附件手工上传 ≥1 个 + 本地副本 sha256；源码 zipball 不算产物 | §1.1 附件清单 + sha256；本地副本 `release/`（gitignore，不入库） |
+| K32 | CI 首推后"本地等价校验"历史措辞不改写，只追加 run id 实测 | plan/00 §五新增"CI 首推实测记录"小节，M1–M5 历史行未动 |
+| K33 | 全仓无本机绝对路径 / 用户名 / 邮箱 / 系列品牌词 | `plan/M6-desensitize-scan.md` 三面终扫 0 命中 + 阳性对照 |

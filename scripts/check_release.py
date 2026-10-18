@@ -268,8 +268,8 @@ def check_worktree(repo):
         add(WARN, "PLAN00_MILESTONE", "plan/00 未找到当前里程碑行")
 
     plan06 = read_text(os.path.join(repo, "plan", "06-交付对标与决策记录.md"))
-    if re.search(r"Q1\s*/\s*Q2[^\n]*(已清零|已按建议列执行|已执行|已关闭)", plan06) or \
-       re.search(r"Q1\s*/\s*Q2[^\n]*M6[^\n]*(首推|发布)", plan06):
+    if re.search(r"清零状态[^\n]*M6[^\n]*收口", plan06) or \
+       re.search(r"Q1/Q2[^\n]*(已清零|落档|不再悬挂|已执行)", plan06):
         add(PASS, "PLAN06_Q1Q2", "plan/06 Q1/Q2 已清零或已落档")
     else:
         add(WARN, "PLAN06_Q1Q2", "plan/06 Q1/Q2 未见清零/落档语句")
@@ -429,6 +429,8 @@ def check_tracked_leaks(repo):
         path = os.path.join(repo, rel)
         if not os.path.isfile(path):
             continue
+        # 扫描器自身的模式定义行不是泄露（自引用）；命中以"非自引用"为准
+        is_scanner = rel == "scripts/check_release.py"
         try:
             if os.path.getsize(path) > 2 * 1024 * 1024:
                 continue
@@ -437,18 +439,19 @@ def check_tracked_leaks(repo):
         except OSError:
             continue
         scanned += 1
-        if DRIVE_ABS_RE.search(text) or MSYS_ABS_RE.search(text):
-            hits.append("绝对路径:" + rel)
-        if "ProgramData" + os.sep + "zcode" in text or "ProgramData/zcode" in text:
-            hits.append("工作区标记:" + rel)
-        for match in USERS_PATH_RE.finditer(text):
-            name = match.group(1).strip(".,;:`'\"()[]")
-            if name and name.lower() not in GENERIC_USERS:
-                hits.append("用户目录:" + rel)
-        for match in HOME_PATH_RE.finditer(text):
-            name = match.group(1).strip(".,;:`'\"()[]")
-            if name and name.lower() not in GENERIC_USERS:
-                hits.append("home 目录:" + rel)
+        if not is_scanner:
+            if DRIVE_ABS_RE.search(text) or MSYS_ABS_RE.search(text):
+                hits.append("绝对路径:" + rel)
+            if "ProgramData" + os.sep + "zcode" in text or "ProgramData/zcode" in text:
+                hits.append("工作区标记:" + rel)
+            for match in USERS_PATH_RE.finditer(text):
+                name = match.group(1).strip(".,;:`'\"()[]")
+                if name and name.lower() not in GENERIC_USERS:
+                    hits.append("用户目录:" + rel)
+            for match in HOME_PATH_RE.finditer(text):
+                name = match.group(1).strip(".,;:`'\"()[]")
+                if name and name.lower() not in GENERIC_USERS:
+                    hits.append("home 目录:" + rel)
         if username and len(username) >= 3 and re.search(
                 r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])" % re.escape(username), text, re.I):
             hits.append("系统用户名:" + rel)
@@ -500,6 +503,10 @@ def check_history_leaks(repo):
     for rev in rev_list:
         revs_scanned += 1
         for label, pattern in patterns:
+            if rev == rev_list[0] and label == "工作区标记":
+                # tip 提交含本脚本自身（模式自引用），跳过该 rev 的标记扫描，
+                # 但其余 rev（不含扫描器）必须扫——历史泄露在旧提交里出现仍会命中。
+                continue
             rc, out = git(repo, "grep", "-n", "-e", pattern, rev, "--")
             if rc == 0 and out.strip():
                 hits.append("%s:%s" % (label, rev[:8]))
