@@ -20,6 +20,7 @@ import os
 import sys
 
 from . import gates, parse, provenance, render, rules
+from . import __version__
 from .exitcodes import (
     EXIT_AUDIT_ERRORS,
     EXIT_CONFIG,
@@ -34,6 +35,12 @@ def build_parser():
     parser = argparse.ArgumentParser(
         prog="chartaudit",
         description="CSV → 单文件 HTML 图表 + 机器可读诚信审计报告（逐值溯源 / 样本量门禁 / 误差棒来源真实性）",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="chartaudit %s" % __version__,
+        help="打印版本并退出",
     )
     sub = parser.add_subparsers(dest="command")
 

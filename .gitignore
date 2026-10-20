@@ -82,3 +82,6 @@ dist/
 
 # M6 发布附件本地副本（不入库；哈希留档在 plan/RELEASE-M6.md）
 release/
+
+# 迭代交接目录（诊断/执行记录，不入库）
+update/

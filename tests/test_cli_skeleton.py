@@ -3,6 +3,8 @@
 import json
 import os
 
+import pytest
+
 from chartaudit import cli, provenance
 from chartaudit.exitcodes import EXIT_AUDIT_ERRORS, EXIT_CONFIG, EXIT_OK, EXIT_USAGE
 
@@ -147,3 +149,26 @@ def test_invalid_mark_is_usage_error(tmp_path):
 
 def test_selftest_passes():
     assert cli.main(["selftest"]) == EXIT_OK
+
+
+def test_version_flag_prints_package_version(capsys):
+    """--version 是对外可见的版本通道（D1/D8）；值与 __init__ 同一处。"""
+    import chartaudit
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--version"])
+    assert excinfo.value.code == 0
+    assert capsys.readouterr().out.strip() == "chartaudit %s" % chartaudit.__version__
+
+
+def test_version_matches_pyproject_and_is_not_dev():
+    """版本口径两处相等且不含 dev 段（发布门 VERSION 项的测试侧同款判据）。"""
+    import re
+
+    import chartaudit
+
+    with open(os.path.join(REPO_ROOT, "pyproject.toml"), encoding="utf-8") as f:
+        pyproject = f.read()
+    declared = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.M).group(1)
+    assert declared == chartaudit.__version__
+    assert not re.search(r"\.?dev\d*", chartaudit.__version__, re.I)

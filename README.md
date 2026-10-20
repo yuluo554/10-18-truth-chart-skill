@@ -1,6 +1,9 @@
 # chartaudit — 图表诚信审计 Skill
 
-> **状态：v0.1.0 已发布（2026-10-18，GitHub 公开仓库 + tag `v0.1.0` + Release 附产物；M0–M6 全里程碑完成，CI 四矩阵 ubuntu/windows × 3.8/3.12 全绿）。本 README 只声称下述已实现能力。**
+> **状态：v0.1.1 已发布（2026-10-20，GitHub 公开仓库 + tag `v0.1.1` + Release 附产物）；上一版 v0.1.0（2026-10-18）。M0–M7 里程碑完成。本 README 只声称下述已实现能力。**
+>
+> 支持解释器：**Python >= 3.12**（`pyproject.toml` `requires-python` / classifiers / CI 矩阵三处同一口径；3.8 通道自 v0.1.1 起退役）。
+> CI 历史：`39122323990`（2026-10-18T11:12:51Z）为 3.8/3.12 四矩阵最后一次全绿；floor 抬到 3.12 后的新 run 据实补记于 `plan/RELEASE-v0.1.1.md` §二。
 
 CSV → 单文件 HTML 图表 + 机器可读诚信审计报告：逐值溯源到源 CSV 单元格、聚合可独立重算、样本量不足时禁止画均值柱、误差棒类型必须与数据列一致；存在 ERROR 时阻断发布。
 
@@ -47,6 +50,7 @@ CSV → 单文件 HTML 图表 + 机器可读诚信审计报告：逐值溯源到
 
 ```bash
 pip install -e ".[dev]"
+chartaudit --version                                   # 打印版本（`chartaudit 0.1.1`），exit 0
 pytest -q                                              # 全量测试（含解析 / 溯源 / 规则 / 门禁 / 渲染回归、G1 注入、独立重算、零字面量扫描门、契约块三方断言）
 chartaudit check <csv> <spec.json> --out <dir>         # 解析 → 溯源 → 规则审计 → 窄缝门禁；写出 dataset/diagnostics/normalized/provenance/audit/gates（exit 0/1/2/3；不渲染）
 chartaudit build <csv> <spec.json> --out <dir>         # 全链：审计 + 发布门。无 ERROR → dist/<name>.html（exit 0）；有 ERROR → 默认不写，exit 1

@@ -27,8 +27,11 @@
 ## 调用示例
 
 ```bash
-# 安装（纯标准库，零运行时依赖；pytest 仅为 dev extra）
+# 安装（纯标准库，零运行时依赖；pytest 仅为 dev extra；需 Python >= 3.12）
 pip install -e ".[dev]"
+
+# 打印版本（与 pyproject 同一处口径；exit 0）
+chartaudit --version
 
 # 全链构建：审计 + 渲染（通过 → dist/clean_bar.html，exit 0）
 chartaudit build data/synthetic/synthetic_groups.csv data/synthetic/spec_clean_bar.json --out out/demo

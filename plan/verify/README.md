@@ -64,3 +64,48 @@
 
 CI 四矩阵（ubuntu/windows × 3.8/3.12）在 GitHub Actions 首推后实跑；run id
 与结论据实补记于 `plan/RELEASE-M6.md`（tag 后追加事实栏）与 `plan/00` §五。
+
+---
+
+## 七、v0.1.1 干净环境复验（2026-10-20）
+
+> 本节为 v0.1.1 追加，§一–§六 是 v0.1.0 的既往读数，**未改写**。
+> 环境：Windows；全新 venv `%TEMP%/tc-iter-env`（`py -3.12 -m venv`，Python 3.12.10）
+> + `pip install -e ".[dev]"`。3.8 通道自 v0.1.1 起退役（`requires-python >= 3.12`），本版不再跑。
+
+| # | 命令 | 退出码 | 结果 |
+| --- | --- | --- | --- |
+| 1 | `pip install -e ".[dev]"` | 0 | ✅ `pip show chartaudit` → `Version: 0.1.1`（不再是 `.dev0`） |
+| 2 | `pytest -q` | 0 | ✅ **285 passed**（283 + 新增 `--version` / 版本口径两条） |
+| 3 | `chartaudit --version` | 0 | ✅ `chartaudit 0.1.1` |
+| 4 | `check <groups.csv> <spec_clean_bar.json>` | 0 | ✅ 六份 JSON 写出 |
+| 5 | `build <groups.csv> <spec_clean_bar.json>` | 0 | ✅ `dist/clean_bar.html`；与 `data/samples/clean_bar.html` **`cmp` 逐字节一致** |
+| 6 | `build <groups.csv> <spec_g2_skewed.json>` | 1 | ✅ 阻断发布，`dist/` 目录**不存在**（零可发布 HTML） |
+| 7 | 同上 + `--emit-audit-html` | 1 | ✅ 只写 `dist/g2_skewed.audit.html` |
+| 8 | `check <groups.csv> <spec_rule_invalid_mark.json>` | 2 | ✅ 用法错误，零写入 |
+| 9 | `python -m chartaudit.cli selftest` | 0 | ✅ 模块形态 |
+| 10 | `chartaudit selftest`（console script） | 0 | ✅ 裸命令形态 |
+| 11 | `py -X utf8 tools/bench.py` | 0 | ✅ **29/29 达标**（失败 0） |
+| 12 | `py -X utf8 tools/gen_synthetic.py --check` | 0 | ✅ 冻结两层守门通过 |
+| 13 | `py -X utf8 tools/check_whitelist.py` | 0 | ✅ 白名单校验通过 |
+
+**sdist 形态复验（D6 / DEC4=A）**：
+
+| 项 | 命令 | 结果 |
+| --- | --- | --- |
+| 构建 | `python -m build --sdist` | ✅ `chartaudit-0.1.1.tar.gz` |
+| 自足 | `tar -tzf … \| grep -c "<dir>/"` | ✅ `data/` 42、`tools/` 4、`plan/` 19、`references/` 5、`tests/` 14、`scripts/` 18（改前 `data/`/`tools/`/`plan/`/`references/` 均为 0） |
+| 解包树跑测试 | 解包到 `%TEMP%/tc-iter-sdist` → `pytest -q` | ✅ **285 passed** |
+| 隔离环境再跑 | 全新 venv 只装 `pytest` + `PYTHONPATH=scripts`（不装包） | ✅ **285 passed**（`chartaudit.__file__` 落在解包树内，未串到仓库） |
+
+**构建告警**：`python -m build --wheel --sdist` 的 `warning` 计数 = **0**
+（改前 4 条 `project.license` TOML 表弃用）。注意本机环境变量 `PYTHONDONTWRITEBYTECODE=1`
+会让 build 额外打 2 条 `byte-compiling is disabled, skipping` 提示——那是环境变量的回声，
+不是包缺陷；上表的 0 是在清空该变量后取的（`PYTHONDONTWRITEBYTECODE= python -m build …`）。
+`MANIFEST.in` 里刻意**不写** `global-exclude`：本仓没有 pyc/`__pycache__` 入库，
+`global-exclude` 反而会刷 16 条 "no previously-included files matching" 警告。
+`pip` 元数据实测：`License-Expression: MIT`、`License-File: LICENSE`、
+`Requires-Python: >=3.12`、4 条 classifier。
+
+**CI 通路**：3.12 两腿（ubuntu-latest / windows-latest）run 待 v0.1.1 推送后据实补记。
+

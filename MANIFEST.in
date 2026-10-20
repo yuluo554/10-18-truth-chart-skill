@@ -1,0 +1,17 @@
+# sdist 自足（D6）：sdist 要能在解包树里直接 pytest，因此带上
+# 数据快照 / 规则与门禁配置 / 基准脚本 / 计划文档。
+include LICENSE
+include README.md
+include SKILL.md
+include pyproject.toml
+
+recursive-include scripts/chartaudit *.py
+recursive-include data *
+recursive-include references *
+recursive-include tools *.py
+recursive-include plan *.md
+recursive-include tests *.py
+
+prune release
+prune out
+prune update

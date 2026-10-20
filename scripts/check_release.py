@@ -33,13 +33,65 @@ import sys
 import tempfile
 import zipfile
 
-TAG_DEFAULT = "v0.1.0"
+def package_version(repo):
+    """版本号唯一出处：scripts/chartaudit/__init__.py。tag / 附件名由它派生，不再写第三份字面量。"""
+    init_py = read_text(os.path.join(repo, "scripts", "chartaudit", "__init__.py"))
+    match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', init_py, re.M)
+    return match.group(1).strip() if match else ""
+
+
+def readme_status(text, version):
+    """判定 README 里当前版本的状态：'published' / 'unshipped' / None。
+
+    必须是"当前包版本 + 已发布"同句；"v0.1.1 已就绪待发布"这类句子判成 unshipped，
+    不能拿它糊过去（v0.1.0.dev0 那轮的教训：README 说 v0.1.0，包却是 0.1.0.dev0）。
+    """
+    if not version:
+        return None
+    state = None
+    for match in re.finditer(r"v%s([^。\n]{0,40})" % re.escape(version), text):
+        tail = match.group(1)
+        if re.search(r"[待未]发布|尚[未不]", tail):
+            state = "unshipped"
+        elif "已发布" in tail:
+            return "published"
+    return state
+
+
+def section_after(text, heading):
+    """取 `heading` 所在行起、到下一个同级标题之前的片段（含标题行本身）。"""
+    start = text.index(heading)
+    rest = text[start + len(heading):]
+    nxt = re.search(r"^#{1,2}\s", rest, re.M)
+    return text[start:start + len(heading)] + (rest[:nxt.start()] if nxt else rest)
+
+
+
 REPO_DEFAULT = "yuluo554/10-18-truth-chart-skill"
-RELEASE_DOC = "plan/RELEASE-M6.md"
+RELEASE_DOC = "plan/RELEASE-M6.md"   # 由 resolve_release_names() 按版本改指
 SCAN_DOC = "plan/M6-desensitize-scan.md"
 VERIFY_DOC = "plan/verify/README.md"
-ATTACHMENT = "chartaudit-v0.1.0-samples.zip"
 LOCAL_RELEASE_DIR = "release"
+
+# tag / 附件名 / 发布留档名的默认值在 main() 里由 package_version(repo) 派生
+# （见 resolve_release_names），不在脚本里写第二份版本字面量——改版本只需改 __init__.py 一处。
+TAG_DEFAULT = ""
+ATTACHMENT = ""
+
+
+def resolve_release_names(repo, tag):
+    """把 tag / 附件名 / 发布留档名解析成当前仓库版本对应的形态。"""
+    global TAG_DEFAULT, ATTACHMENT, RELEASE_DOC
+    version = package_version(repo)
+    if version:
+        TAG_DEFAULT = "v%s" % version
+        ATTACHMENT = "chartaudit-v%s-samples.zip" % version
+        per_version_doc = "plan/RELEASE-v%s.md" % version
+        if os.path.isfile(os.path.join(repo, per_version_doc)):
+            RELEASE_DOC = per_version_doc
+        if not tag:
+            tag = TAG_DEFAULT
+    return tag
 
 PASS, WARN, FAIL, SKIP = "PASS", "WARN", "FAIL", "SKIP"
 RESULTS = []
@@ -152,13 +204,16 @@ def check_tag(repo, tag, pre_tag):
         add(FAIL, "TAG_README", "tag 树无 README.md")
     else:
         stale = re.search(r"开发中|未开工|M6\s*发布未|待首推|发布执行中", body)
-        published = re.search(r"v0\.1\.0", body) and re.search(r"已发布|发布版", body)
+        version = tag.lstrip("v")
+        state = readme_status(body, version)
         if stale:
             add(FAIL, "TAG_README", "tag 树 README 仍为未发布态（命中：%s）" % stale.group(0))
-        elif published:
-            add(PASS, "TAG_README", "tag 树 README 为 v0.1.0 发布态")
+        elif state == "published":
+            add(PASS, "TAG_README", "tag 树 README 为 v%s 发布态" % version)
+        elif state == "unshipped":
+            add(FAIL, "TAG_README", "tag 树 README 仍写 v%s 未发布（tag 已打，属自相矛盾）" % version)
         else:
-            add(WARN, "TAG_README", "tag 树 README 未找到明确发布状态行")
+            add(WARN, "TAG_README", "tag 树 README 未找到 v%s 的明确发布状态行" % version)
 
     rc, body = git(repo, "show", "%s:%s" % (tag, RELEASE_DOC))
     if rc != 0:
@@ -234,17 +289,22 @@ def check_worktree(repo):
     body = read_text(os.path.join(repo, "README.md"))
     head = "\n".join(body.splitlines()[:12])
     stale = re.search(r"开发中|未开工|M6\s*发布未|待首推|发布执行中", head)
-    published = re.search(r"v0\.1\.0", head) and re.search(r"已发布|发布版", head)
+    version = package_version(repo)
+    state = readme_status(head, version)
     if stale:
         add(FAIL, "README_STATUS", "README 状态行仍为未发布态（命中：%s）" % stale.group(0))
-    elif published:
-        add(PASS, "README_STATUS", "README 状态行为 v0.1.0 发布态")
+    elif not version:
+        add(FAIL, "README_STATUS", "无法读取包版本号，无法判定 README 状态行")
+    elif state == "published":
+        add(PASS, "README_STATUS", "README 状态行为 v%s 发布态" % version)
+    elif state == "unshipped":
+        add(WARN, "README_STATUS", "README 明写 v%s 尚未发布（tag 未打时的应有形态）" % version)
     else:
-        add(WARN, "README_STATUS", "README 前 12 行未找到明确发布状态行")
+        add(WARN, "README_STATUS", "README 前 12 行未找到 v%s 的已发布状态行" % version)
 
     plan05 = read_text(os.path.join(repo, "plan", "05-里程碑.md"))
     if "## M6 发布" in plan05:
-        m6 = plan05[plan05.index("## M6 发布"):]
+        m6 = section_after(plan05, "## M6 发布")
         open_items = re.findall(r"^\s*-\s*\[ \]", m6, re.M)
         done_status = re.search(r"M6\s*发布\s*[—\-]\s*状态：\s*✅", m6)
         if open_items:
@@ -275,6 +335,37 @@ def check_worktree(repo):
         add(WARN, "PLAN06_Q1Q2", "plan/06 Q1/Q2 未见清零/落档语句")
 
 
+def check_version(repo):
+    """版本口径唯一性：pyproject 与 __init__ 两处相等且均不含 dev 段。
+
+    D1 回归守门：只改一处 → 不相等；两处都写 .dev0 → 含 dev 段；各自独立变红。
+    """
+    pyproject = read_text(os.path.join(repo, "pyproject.toml"))
+    init_py = read_text(os.path.join(repo, "scripts", "chartaudit", "__init__.py"))
+    py_match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', pyproject, re.M)
+    init_match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', init_py, re.M)
+    if not py_match:
+        add(FAIL, "VERSION", "pyproject.toml 未找到 version 字段")
+        return
+    if not init_match:
+        add(FAIL, "VERSION", "scripts/chartaudit/__init__.py 未找到 __version__")
+        return
+    py_version = py_match.group(1).strip()
+    init_version = init_match.group(1).strip()
+    if py_version != init_version:
+        add(FAIL, "VERSION",
+            "版本号不一致：pyproject=%s / __init__=%s" % (py_version, init_version))
+        return
+    dev_re = re.compile(r"\.?dev\d*", re.I)
+    dev_hits = [value for value in (py_version, init_version) if dev_re.search(value)]
+    if dev_hits:
+        add(FAIL, "VERSION",
+            "版本号含 dev 段（PEP 440 语义排在正式版之前）：%s" % dev_hits[0])
+        return
+    add(PASS, "VERSION",
+        "pyproject 与 __init__ 版本号一致且无 dev 段（%s）" % py_version)
+
+
 def check_docs(repo):
     release_doc = read_text(os.path.join(repo, RELEASE_DOC))
     if not release_doc:
@@ -296,12 +387,16 @@ def check_docs(repo):
         add(WARN, "SCAN_DOC", "脱敏扫描留档字段不完整（需含 0 命中 / 全历史 / 阳性对照）")
 
     verify_doc = read_text(os.path.join(repo, VERIFY_DOC))
+    version = package_version(repo)
     if not verify_doc:
         add(FAIL, "VERIFY_DOC", "缺干净环境验证留档 %s" % VERIFY_DOC)
-    elif "3.8" in verify_doc and "3.12" in verify_doc and "283" in verify_doc:
-        add(PASS, "VERIFY_DOC", "干净环境验证留档含双解释器与收集数 283")
+    elif "3.12" not in verify_doc:
+        add(FAIL, "VERIFY_DOC", "干净环境验证留档未记录 3.12 通道")
+    elif version and ("v" + version) not in verify_doc:
+        add(WARN, "VERIFY_DOC",
+            "干净环境验证留档没有 v%s 段落（当前版本未在本版干净环境里实跑过）" % version)
     else:
-        add(WARN, "VERIFY_DOC", "干净环境验证留档字段不完整（需含 3.8 / 3.12 / 283）")
+        add(PASS, "VERIFY_DOC", "干净环境验证留档含 3.12 通道与 v%s 段落" % version)
 
 
 # ---------------------------------------------------------------- 附件面
@@ -688,21 +783,36 @@ def check_release(repo, slug, tag):
                     add(FAIL, "RELEASE_DOWNLOAD", "回下载 sha256 ≠ 本地副本")
 
 
-def _matrix_jobs(jobs):
+def ci_matrix_expectation(repo):
+    """从 .github/workflows/ci.yml 现读矩阵口径（不在脚本里复制第二份版本清单）。
+
+    返回 [(os, python), ...]；解析失败返回 []，由调用方判 FAIL —— 宁可红也不猜。
+    """
+    text = read_text(os.path.join(repo, ".github", "workflows", "ci.yml"))
+    if not text:
+        return []
+    os_line = re.search(r"^\s*os:\s*\[([^\]]*)\]", text, re.M)
+    py_line = re.search(r"^\s*python-version:\s*\[([^\]]*)\]", text, re.M)
+    if not os_line or not py_line:
+        return []
+    split = lambda block: [part.strip().strip("\"'") for part in block.split(",") if part.strip()]
+    os_list = split(os_line.group(1))
+    py_list = split(py_line.group(1))
+    return [(os_name, py) for os_name in os_list for py in py_list]
+
+
+def _matrix_jobs(jobs, expected):
     combos = {}
     for job in jobs:
         name = job.get("name", "")
         conclusion = job.get("conclusion")
         status = job.get("status")
-        label = name
         key = None
-        for os_name in ("ubuntu-latest", "windows-latest"):
-            if os_name in name:
-                for py in ("3.8", "3.12"):
-                    if py in name:
-                        key = (os_name, py)
+        for os_name, py in expected:
+            if os_name in name and py in name:
+                key = (os_name, py)
         if key:
-            combos[key] = (status, conclusion, label)
+            combos[key] = (status, conclusion, name)
     return combos
 
 
@@ -741,15 +851,18 @@ def check_ci(repo, slug, tag):
     if not final_runs:
         add(FAIL, "CI_FINAL_RUN", "HEAD/tag 对应提交没有已完成的 push run")
         return
+    expected = ci_matrix_expectation(repo)
+    if not expected:
+        add(FAIL, "CI_MATRIX", "无法从 .github/workflows/ci.yml 解析 os / python-version 矩阵")
+        return
     for item in final_runs:
         run_id = item.get("databaseId")
         jobs = run_jobs(run_id)
         if jobs is None:
             add(FAIL, "CI_MATRIX", "无法读取 run %s 的 jobs" % run_id)
             continue
-        combos = _matrix_jobs(jobs)
-        want = {(os_name, py) for os_name in ("ubuntu-latest", "windows-latest")
-                for py in ("3.8", "3.12")}
+        combos = _matrix_jobs(jobs, expected)
+        want = set(expected)
         missing = want - set(combos)
         bad = [key for key, value in combos.items()
                if value[0] != "completed" or value[1] != "success"]
@@ -822,7 +935,7 @@ def report(as_json):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="M6 发布终态自检（离线 + --online）")
     parser.add_argument("--repo", default="", help="仓库路径（默认当前目录）")
-    parser.add_argument("--tag", default=TAG_DEFAULT, help="发布 tag（默认 %s）" % TAG_DEFAULT)
+    parser.add_argument("--tag", default="", help="发布 tag（默认由 __init__.py 版本派生，如 v0.1.1）")
     parser.add_argument("--online", action="store_true", help="追加远端 / Release / CI 检查")
     parser.add_argument("--pre-tag", action="store_true", help="tag 前冒烟：跳过 tag 相关项")
     parser.add_argument("--slug", default="", help="GitHub 仓库 slug（默认自动解析）")
@@ -834,9 +947,15 @@ def main(argv=None):
     if not check_repo(repo):
         return report(args.json)
 
+    args.tag = resolve_release_names(repo, args.tag)
+    if not args.tag:
+        add(FAIL, "VERSION", "无法从 scripts/chartaudit/__init__.py 读取 __version__，无法派生 tag")
+        return report(args.json)
+
     check_tag(repo, args.tag, args.pre_tag)
     check_post_tag(repo, args.tag, args.pre_tag)
     check_worktree(repo)
+    check_version(repo)
     check_docs(repo)
     check_local_attachment(repo)
     check_commit_emails(repo)
