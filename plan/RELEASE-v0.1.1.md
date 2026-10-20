@@ -92,6 +92,15 @@
 > 也就是说 2026-10-19 的 `ubuntu-latest → Ubuntu 26` 迁移在本次运行上**尚未生效**，
 > 迁移后首验仍待下一次 run。windows 腿实测 `Microsoft Windows Server 2025 / 10.0.26100`。
 
+### 2.2 终检快照（收官态）
+
+- `scripts/check_release.py`（离线）：**PASS 28 / WARN 0 / FAIL 0 / SKIP 0**，exit 0
+- `scripts/check_release.py --online`：**PASS 43 / WARN 1 / FAIL 0 / SKIP 0**，exit 0
+  —— 唯一 WARN = `PUSH_RECON`（Events API 事件面缺口，见 §2.1 处置说明）；
+  其余 43 项全 PASS：tag 树含留档/脱敏/验证/门禁、tag 树 README 为 v0.1.1 发布态、
+  远端 tag 同源（`0c45f359`）、Release 非 draft + 附件 digest 与本地 sha256 逐位一致 +
+  回下载一致、两 run 各 2 腿全绿、topics 8 个、工作树与全历史脱敏 0 命中。
+
 ---
 
 ## 三、工作树侧判定（tag 后离线门）
