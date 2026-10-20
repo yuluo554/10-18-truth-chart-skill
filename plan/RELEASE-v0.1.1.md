@@ -72,19 +72,21 @@
 | push tag 的 CI | ✅ | run **`39421032588`**（`v0.1.1` / `0c45f359`）：两腿全 success；注解 0 条 Node20 弃用 + 1 条 ubuntu 迁移 notice（同上） |
 | GitHub Release + 附件 | ✅ | `releases/tag/v0.1.1`（`draft=false`、`prerelease=false`，created 2026-10-20T12:16:24Z）；附件 `chartaudit-v0.1.1-samples.zip` 10,066 B；GitHub 资产 digest `sha256:ddd3542b…4a71e` |
 | 附件四方同值 | ✅ | GitHub digest == `release/SHA256SUMS` 台账 == 本地 `release/` 副本 == `gh release download` 回下载重算，四方逐字符相同 |
-| `check_release.py --online` | ✅ | **PASS 44 / WARN 1 / FAIL 0 / SKIP 0**，exit 0（唯一 WARN = `PUSH_RECON`：push 事件数 6 ≠ run 数 10，Events API 事件面缺口的既有形态，按 run 明细对账为准） |
-| `check_release.py`（离线） | ✅ | 见 §2.2（tag 后实测汇总） |
+| `check_release.py --online` | ✅ | **PASS 45 / WARN 1 / FAIL 0 / SKIP 0**，exit 0（唯一 WARN = `PUSH_RECON`：push 事件数 7 ≠ run 数 11，Events API 事件面缺口的既有形态，按 run 明细对账为准） |
+| `check_release.py`（离线） | ✅ | **PASS 28 / WARN 0 / FAIL 0 / SKIP 0**，exit 0 |
+| tag 后回写提交 | ✅ | `90b3f6a`（§二/§2.1/§2.2 实测回写 + 门内措辞去硬编码「四矩阵」）、`7f9aef5`（§2.2 终检快照）——均为追加类措辞；`POST_TAG_FILES` 判定改动面仅 `plan/` + 发布门禁脚本 |
 
 ### 2.1 CI run 明细（v0.1.1 窗口）
 
 | run id | branch | head_sha | 事件 | 结论 |
 | --- | --- | --- | --- | --- |
-| `39420791262` | main | `0c45f359` | push（v0.1.1 发布改动） | ✅ 2/2 success（ubuntu-latest 3.12 / windows-latest 3.12） |
+| `39420791262` | main | `0c45f359` | push（v0.1.1 发布改动） | ✅ 2/2 success（ubuntu-latest 3.12 / windows-latest 3.12），两腿各 285 passed |
 | `39421032588` | v0.1.1 | `0c45f359` | push tag | ✅ 2/2 success |
+| `39421539514` | main | `7f9aef5f` | push（§二 回写追加） | ✅ 2/2 success |
 
-> 对账：本窗口共 2 次 `git push`（main ×1 / tag ×1），`ci.yml` push run 恰 2 个，
+> 对账：本窗口共 3 次 `git push`（main ×2 / tag ×1），`ci.yml` push run 恰 3 个，
 > branch + head_sha 逐条配对，**无失败 run**（`CI_HISTORY` PASS）。
-> Events API 只返回 6 个 PushEvent（含 v0.1.0 窗口的残留），少于 10 个 push run，
+> Events API 只返回 7 个 PushEvent（含 v0.1.0 窗口的残留），少于 11 个 push run，
 > `PUSH_RECON` 因此给 WARN 而非 FAIL——与本仓既有处置口径一致（以 run 明细为准）。
 >
 > **镜像事实（重要，别当成已验）**：ubuntu 腿日志头实测
@@ -95,11 +97,11 @@
 ### 2.2 终检快照（收官态）
 
 - `scripts/check_release.py`（离线）：**PASS 28 / WARN 0 / FAIL 0 / SKIP 0**，exit 0
-- `scripts/check_release.py --online`：**PASS 43 / WARN 1 / FAIL 0 / SKIP 0**，exit 0
+- `scripts/check_release.py --online`：**PASS 45 / WARN 1 / FAIL 0 / SKIP 0**，exit 0
   —— 唯一 WARN = `PUSH_RECON`（Events API 事件面缺口，见 §2.1 处置说明）；
-  其余 43 项全 PASS：tag 树含留档/脱敏/验证/门禁、tag 树 README 为 v0.1.1 发布态、
+  其余 45 项全 PASS：tag 树含留档/脱敏/验证/门禁、tag 树 README 为 v0.1.1 发布态、
   远端 tag 同源（`0c45f359`）、Release 非 draft + 附件 digest 与本地 sha256 逐位一致 +
-  回下载一致、两 run 各 2 腿全绿、topics 8 个、工作树与全历史脱敏 0 命中。
+  回下载一致、三个 run 各 2 腿全绿、topics 8 个、工作树与全历史脱敏 0 命中。
 
 ---
 

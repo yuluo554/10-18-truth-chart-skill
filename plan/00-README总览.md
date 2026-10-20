@@ -108,14 +108,20 @@
 > CI 级守门范围与本地一致：pytest 283 项 + `python -m chartaudit.cli selftest` +
 > 裸 `chartaudit selftest` 两通路冒烟（D17 安装面第四面）。
 
-### v0.1.1 CI 记录（2026-10-20，待推送后补记）
+### v0.1.1 CI 记录（2026-10-20 实测；tag 后追加栏）
 
 | 事件 | run id | head | 结论 |
 | --- | --- | --- | --- |
-| push main（v0.1.1 改动） | ⬜ | ⬜ | 待触发；矩阵已收敛为 `{ubuntu-latest, windows-latest} × {3.12}` |
-| push tag `v0.1.1` | ⬜ | ⬜ | 待打 tag 后补记 |
+| push main（v0.1.1 发布改动） | `39420791262` | `0c45f359` | ✅ 2/2 success（ubuntu-latest 3.12 / windows-latest 3.12），两腿各 285 passed |
+| push tag `v0.1.1` | `39421032588` | `0c45f359` | ✅ 2/2 success |
+| push main（§二 回写追加） | `39421539514` | `7f9aef5f` | ✅ 2/2 success |
 
 > v0.1.1 起 `requires-python >= 3.12`、CI 矩阵收敛为 3.12 两腿（D32）；
 > 上表是 v0.1.0 窗口的既往读数，**不改写**。上一次 3.8/3.12 四矩阵全绿是
-> `39122323990`（2026-10-18T11:12:51Z）——该 run 上已有 `ubuntu-latest` 将于
-> 2026-10-19 迁 Ubuntu 26 的 notice，故 v0.1.1 的新 run 同时承担"新镜像首验"。
+> `39122323990`（2026-10-18T11:12:51Z）。
+>
+> **镜像事实（未兑现，别当已验）**：三个新 run 的 ubuntu 腿日志头实测
+> `Ubuntu 24.04.5 LTS` / `Image: ubuntu-24.04` / `Version 20261018.339.1`——
+> 2026-10-19 的 `ubuntu-latest → Ubuntu 26` 迁移在这些运行上**尚未生效**，
+> notice 仍在，迁移后首验仍待下一次 run。windows 腿为 `Windows Server 2025 / 10.0.26100`。
+> Node.js 20 弃用 warning 已从 4 条降到 **0 条**（actions v7 生效）。
