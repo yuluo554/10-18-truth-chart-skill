@@ -65,27 +65,45 @@
 
 | 项 | 状态 | 实测值 |
 | --- | --- | --- |
-| 提交 + push main | ⬜ | 待执行（需用户点头；本仓纪律：不自行 commit / push） |
-| CI 新 run（3.12 两腿） | ⬜ | 待触发后补记 run id / 结论 / 注解条数（期望：0 条 Node20 弃用、0 条 ubuntu 迁移 notice） |
-| tag `v0.1.1` | ⬜ | 待打（annotated，tagger 邮箱须为 GitHub noreply） |
-| GitHub Release + 附件 | ⬜ | 待建（draft=false；附件 `chartaudit-v0.1.1-samples.zip`，sha256 见 §1.2） |
-| `check_release.py --online` | ⬜ | 待跑；离线模已实测 **PASS 26 / WARN 3 / FAIL 0 / SKIP 0**（WARN 均为 tag 未打时的应有形态，见 §三） |
+| 提交 + push main | ✅ | 提交 **`0c45f35`**（v0.1.1 发布改动，16 文件 +395/−40）→ `git push origin main`，2026-10-20T12:14:45Z |
+| CI 新 run（3.12 两腿） | ✅ | run **`39420791262`**（push main / `0c45f359`）：`test (ubuntu-latest, 3.12)` 与 `test (windows-latest, 3.12)` 均 **success**；日志实测两腿各 **285 passed**；`selftest` 两通路均通过 |
+| CI 注解 | ✅ 部分 | **Node.js 20 弃用 warning：0 条**（改前 4 条）；ubuntu 腿仍有 **1 条 notice**「`ubuntu-latest` 将于 2026-10-19 迁 Ubuntu 26」，但该腿日志实测 `Image: ubuntu-24.04 / Version 20261018.339.1` → **本次没有真正跑在 Ubuntu 26 上**，迁移首验仍未兑现（如实记录，不当作已验） |
+| tag `v0.1.1` | ✅ | annotated tag，指向 `0c45f359b5befb097b89080ad542f870b48a32ce`（= main 提交）；`git cat-file -t` = `tag`；tagger 邮箱为 GitHub noreply；`git rev-list --count v0.1.1..HEAD` = 0 |
+| push tag 的 CI | ✅ | run **`39421032588`**（`v0.1.1` / `0c45f359`）：两腿全 success；注解 0 条 Node20 弃用 + 1 条 ubuntu 迁移 notice（同上） |
+| GitHub Release + 附件 | ✅ | `releases/tag/v0.1.1`（`draft=false`、`prerelease=false`，created 2026-10-20T12:16:24Z）；附件 `chartaudit-v0.1.1-samples.zip` 10,066 B；GitHub 资产 digest `sha256:ddd3542b…4a71e` |
+| 附件四方同值 | ✅ | GitHub digest == `release/SHA256SUMS` 台账 == 本地 `release/` 副本 == `gh release download` 回下载重算，四方逐字符相同 |
+| `check_release.py --online` | ✅ | **PASS 44 / WARN 1 / FAIL 0 / SKIP 0**，exit 0（唯一 WARN = `PUSH_RECON`：push 事件数 6 ≠ run 数 10，Events API 事件面缺口的既有形态，按 run 明细对账为准） |
+| `check_release.py`（离线） | ✅ | 见 §2.2（tag 后实测汇总） |
+
+### 2.1 CI run 明细（v0.1.1 窗口）
+
+| run id | branch | head_sha | 事件 | 结论 |
+| --- | --- | --- | --- | --- |
+| `39420791262` | main | `0c45f359` | push（v0.1.1 发布改动） | ✅ 2/2 success（ubuntu-latest 3.12 / windows-latest 3.12） |
+| `39421032588` | v0.1.1 | `0c45f359` | push tag | ✅ 2/2 success |
+
+> 对账：本窗口共 2 次 `git push`（main ×1 / tag ×1），`ci.yml` push run 恰 2 个，
+> branch + head_sha 逐条配对，**无失败 run**（`CI_HISTORY` PASS）。
+> Events API 只返回 6 个 PushEvent（含 v0.1.0 窗口的残留），少于 10 个 push run，
+> `PUSH_RECON` 因此给 WARN 而非 FAIL——与本仓既有处置口径一致（以 run 明细为准）。
+>
+> **镜像事实（重要，别当成已验）**：ubuntu 腿日志头实测
+> `Operating System: Ubuntu 24.04.5 LTS` / `Image: ubuntu-24.04` / `Version 20261018.339.1`。
+> 也就是说 2026-10-19 的 `ubuntu-latest → Ubuntu 26` 迁移在本次运行上**尚未生效**，
+> 迁移后首验仍待下一次 run。windows 腿实测 `Microsoft Windows Server 2025 / 10.0.26100`。
 
 ---
 
-## 三、tag 前的离线门实测（tag 时点事实，便于复验对照）
+## 三、工作树侧判定（tag 后离线门）
 
 ```
-python scripts/check_release.py            # tag 未打、工作树含本批改动
-→ 汇总：PASS 26 / WARN 3 / FAIL 0 / SKIP 0，exit 0
-  WARN = TAG_EXISTS 之前的历史口径差异：
-    · README_STATUS   —— README 前 12 行还没有 v0.1.1 的"已发布"句
-    · POST_TAG        —— tag v0.1.1 尚不存在，无法读 tag..HEAD
-    · TAGGER_EMAIL    —— 同上
+python scripts/check_release.py      # tag 已打、Release 已建、回写已提交
+→ 见 §2.2 表格：离线与在线两模均 FAIL 0
 ```
 
-> 说明：这三条 WARN 是"tag 还没打"的必然形态；打了 tag 并回写 README 状态行后应全部转 PASS。
-> `CLEAN_TREE` 在提交后回绿（当前工作树含待提交改动时必然 FAIL，这是判据本身）。
+> 与 v0.1.0 收官态（`PASS 27 / WARN 0 / FAIL 0`，在线 44/1/0/0）**条目数仍是同一套口径**；
+> 检查项名字集合实测 **39 → 40**（只新增 `VERSION`，一个没删，`comm` 对比见
+> `update/03-执行记录.md` §三）。判绿口径不变：**汇总行的 FAIL 数 = 0**。
 
 ---
 

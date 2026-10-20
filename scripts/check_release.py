@@ -4,7 +4,7 @@
 
 用法（在仓库根目录）：
     python scripts/check_release.py                     # 离线：tag / 留档 / 附件本地副本 / README / 脱敏 / 工作树
-    python scripts/check_release.py --online            # 追加：远端 tag / Release 资产 / CI 四矩阵 / topics
+    python scripts/check_release.py --online            # 追加：远端 tag / Release 资产 / CI 矩阵 / topics
     python scripts/check_release.py --pre-tag           # tag 前冒烟：跳过 tag 相关项
     python scripts/check_release.py --json              # 机器可读输出
 
@@ -872,7 +872,7 @@ def check_ci(repo, slug, tag):
         elif bad:
             add(FAIL, "CI_MATRIX", "%s 矩阵 job 未全绿：%s" % (label, bad))
         else:
-            add(PASS, "CI_MATRIX", "%s 四矩阵 job 全绿" % label)
+            add(PASS, "CI_MATRIX", "%s 矩阵 job 全绿（%d 腿）" % (label, len(expected)))
 
     # 最终 HEAD 的 main push run 必须成功；tag push run 必须成功。
     def has_success(sha, branch):
