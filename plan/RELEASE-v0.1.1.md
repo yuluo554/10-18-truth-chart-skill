@@ -74,7 +74,7 @@
 | 附件四方同值 | ✅ | GitHub digest == `release/SHA256SUMS` 台账 == 本地 `release/` 副本 == `gh release download` 回下载重算，四方逐字符相同 |
 | `check_release.py --online` | ✅ | **PASS 45 / WARN 1 / FAIL 0 / SKIP 0**，exit 0（唯一 WARN = `PUSH_RECON`：push 事件数 7 ≠ run 数 11，Events API 事件面缺口的既有形态，按 run 明细对账为准） |
 | `check_release.py`（离线） | ✅ | **PASS 28 / WARN 0 / FAIL 0 / SKIP 0**，exit 0 |
-| tag 后回写提交 | ✅ | `90b3f6a`（§二/§2.1/§2.2 实测回写 + 门内措辞去硬编码「四矩阵」）、`7f9aef5`（§2.2 终检快照）——均为追加类措辞；`POST_TAG_FILES` 判定改动面仅 `plan/` + 发布门禁脚本 |
+| tag 后回写提交 | ✅ | `90b3f6a`（§二/§2.1/§2.2 实测回写 + 门内措辞去硬编码「四矩阵」）、`7f9aef5`（§2.2 终检快照）、`b5fe923`（plan/00 §五 run 明细 + plan/05 M7 翻 ✅）——均为追加类措辞；`POST_TAG_FILES` 判定改动面仅 `plan/` + 发布门禁脚本 |
 
 ### 2.1 CI run 明细（v0.1.1 窗口）
 
@@ -83,11 +83,18 @@
 | `39420791262` | main | `0c45f359` | push（v0.1.1 发布改动） | ✅ 2/2 success（ubuntu-latest 3.12 / windows-latest 3.12），两腿各 285 passed |
 | `39421032588` | v0.1.1 | `0c45f359` | push tag | ✅ 2/2 success |
 | `39421539514` | main | `7f9aef5f` | push（§二 回写追加） | ✅ 2/2 success |
+| `39421863052` | main | `b5fe9234` | push（plan/00 §五 + plan/05 回写） | ✅ 2/2 success |
 
-> 对账：本窗口共 3 次 `git push`（main ×2 / tag ×1），`ci.yml` push run 恰 3 个，
+> 对账：本窗口共 4 次 `git push`（main ×3 / tag ×1），`ci.yml` push run 恰 4 个，
 > branch + head_sha 逐条配对，**无失败 run**（`CI_HISTORY` PASS）。
 > Events API 只返回 7 个 PushEvent（含 v0.1.0 窗口的残留），少于 11 个 push run，
 > `PUSH_RECON` 因此给 WARN 而非 FAIL——与本仓既有处置口径一致（以 run 明细为准）。
+>
+> **台账不追逐自身提交（登记口径）**：每追加一次回写提交就会再触发一次 CI，
+> 而"把这次 run 写进台账"又是一次提交。本表的截断点固定为 **`b5fe923`**；
+> 之后再出现的 run 只要 head 是 `b5fe923` 之后的纯文档回写提交，就按同一形态处理，
+> 不再逐次追加（否则无限递归）。**判绿以 `check_release.py --online` 的汇总行为准**，
+> 该门每次都会现算 HEAD 对应的 main push run 是否成功（`CI_MAIN`）。
 >
 > **镜像事实（重要，别当成已验）**：ubuntu 腿日志头实测
 > `Operating System: Ubuntu 24.04.5 LTS` / `Image: ubuntu-24.04` / `Version 20261018.339.1`。
